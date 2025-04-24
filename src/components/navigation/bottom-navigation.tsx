@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Calendar, Building2, BarChart3, Settings } from 'lucide-react';
+import { Calendar, Building2, BarChart3, Settings, DollarSign } from 'lucide-react';
 
 interface NavItemProps {
   href: string;
@@ -22,6 +22,11 @@ const navItems = [
     href: '/locais',
     icon: Building2,
     label: 'Locais',
+  },
+  {
+    href: '/pagamentos',
+    icon: DollarSign,
+    label: 'Pagamentos',
   },
   {
     href: '/resumo',

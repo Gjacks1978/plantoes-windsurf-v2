@@ -1,13 +1,134 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Upload, Bell, Moon, Sun, LogOut } from "lucide-react";
+import { Download, Upload, Bell, Moon, Sun, LogOut, Trash2, AlertCircle } from "lucide-react";
+import { usePlantoes } from "@/contexts/PlantoesContext";
+import { useLocais } from "@/contexts/LocaisContext";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function AjustesPage() {
+  const { plantoes } = usePlantoes();
+  const { locais } = useLocais();
+  const [temaEscuro, setTemaEscuro] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Função para exportar dados
+  const exportarDados = () => {
+    try {
+      // Criar objeto com todos os dados
+      const dados = {
+        plantoes,
+        locais,
+        versao: "1.0.0",
+        dataExportacao: new Date().toISOString()
+      };
+      
+      // Converter para JSON
+      const dadosJSON = JSON.stringify(dados, null, 2);
+      
+      // Criar blob e link para download
+      const blob = new Blob([dadosJSON], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      // Criar elemento de link e simular clique
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `plantoes-backup-${new Date().toLocaleDateString().replace(/\//g, "-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpar
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      toast.success("Dados exportados com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar dados:", error);
+      toast.error("Erro ao exportar dados. Tente novamente.");
+    }
+  };
+  
+  // Função para importar dados
+  const importarDados = (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const conteudo = e.target?.result as string;
+          const dados = JSON.parse(conteudo);
+          
+          // Verificar se o arquivo tem o formato esperado
+          if (!dados.plantoes || !dados.locais) {
+            throw new Error("Formato de arquivo inválido");
+          }
+          
+          // Armazenar no localStorage
+          localStorage.setItem("plantoes-dados", JSON.stringify(dados.plantoes));
+          localStorage.setItem("locais-dados", JSON.stringify(dados.locais));
+          
+          toast.success("Dados importados com sucesso! Recarregue a página para ver as alterações.");
+          
+          // Recarregar a página para aplicar as alterações
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } catch (error) {
+          console.error("Erro ao processar arquivo:", error);
+          toast.error("Erro ao processar arquivo. Verifique se o formato é válido.");
+        }
+      };
+      
+      reader.readAsText(file);
+    } catch (error) {
+      console.error("Erro ao importar dados:", error);
+      toast.error("Erro ao importar dados. Tente novamente.");
+    } finally {
+      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+  
+  // Função para apagar todos os dados
+  const apagarTodosDados = () => {
+    try {
+      localStorage.removeItem("plantoes-dados");
+      localStorage.removeItem("locais-dados");
+      
+      toast.success("Todos os dados foram apagados! Recarregue a página para ver as alterações.");
+      
+      // Recarregar a página para aplicar as alterações
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error("Erro ao apagar dados:", error);
+      toast.error("Erro ao apagar dados. Tente novamente.");
+    }
+  };
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Ajustes</h1>
@@ -34,7 +155,11 @@ export default function AjustesPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Sun className="h-4 w-4 text-muted-foreground" />
-                  <Switch id="tema-escuro" />
+                  <Switch 
+                    id="tema-escuro" 
+                    checked={temaEscuro}
+                    onCheckedChange={setTemaEscuro}
+                  />
                   <Moon className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
@@ -78,14 +203,44 @@ export default function AjustesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4">
-                <Button variant="outline" className="justify-start">
+                <Button 
+                  variant="outline" 
+                  className="justify-start"
+                  onClick={exportarDados}
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Exportar todos os dados
                 </Button>
-                <Button variant="outline" className="justify-start">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar dados
-                </Button>
+                
+                <div>
+                  <input
+                    type="file"
+                    accept=".json"
+                    ref={fileInputRef}
+                    onChange={importarDados}
+                    style={{ display: 'none' }}
+                    id="import-file"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="justify-start w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Importar dados
+                  </Button>
+                </div>
+                
+                <div className="pt-2 mt-2 border-t">
+                  <div className="flex items-center gap-2 mb-2 text-amber-500">
+                    <AlertCircle className="h-4 w-4" />
+                    <p className="text-xs">A importação substituirá todos os dados atuais</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Formatos suportados: .json<br />
+                    Tamanho máximo: 10MB
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -96,9 +251,29 @@ export default function AjustesPage() {
               <CardDescription>Ações irreversíveis para sua conta</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button variant="destructive" className="w-full">
-                Apagar todos os dados
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Apagar todos os dados
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os seus dados,
+                      incluindo plantões e locais cadastrados.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={apagarTodosDados} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Sim, apagar tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </TabsContent>
