@@ -10,17 +10,6 @@ import { Download, Upload, Bell, Moon, Sun, LogOut, Trash2, AlertCircle } from "
 import { usePlantoes } from "@/contexts/PlantoesContext";
 import { useLocais } from "@/contexts/LocaisContext";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 export default function AjustesPage() {
   const { plantoes } = usePlantoes();
@@ -251,29 +240,18 @@ export default function AjustesPage() {
               <CardDescription>Ações irreversíveis para sua conta</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Apagar todos os dados
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Isso irá apagar permanentemente todos os seus dados,
-                      incluindo plantões e locais cadastrados.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={apagarTodosDados} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Sim, apagar tudo
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button 
+                variant="destructive" 
+                className="w-full"
+                onClick={() => {
+                  if (window.confirm("Tem certeza? Esta ação não pode ser desfeita e irá apagar permanentemente todos os seus dados.")) {
+                    apagarTodosDados();
+                  }
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Apagar todos os dados
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
