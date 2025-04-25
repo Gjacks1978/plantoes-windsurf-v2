@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
-import { format, isSameDay, isSameMonth, isAfter, startOfDay, getDate, addMonths, subMonths } from "date-fns";
+import { format, isSameDay, isSameMonth, isAfter, startOfDay, getDate } from "date-fns";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { CustomCalendar } from "@/components/ui/custom-calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,15 +78,13 @@ export default function Home() {
   const [modalAberto, setModalAberto] = useState(false);
   const [plantaoParaEditar, setPlantaoParaEditar] = useState<Plantao | undefined>(undefined);
 
-  // Funções para navegação entre meses
+  // Função para navegação entre meses
   function handlePrevMonth() {
-    const prevMonth = subMonths(currentMonth, 1);
-    setCurrentMonth(prevMonth);
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   }
 
   function handleNextMonth() {
-    const nextMonth = addMonths(currentMonth, 1);
-    setCurrentMonth(nextMonth);
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   }
 
   // Obter plantões com base na data selecionada ou no mês atual
@@ -137,7 +134,7 @@ export default function Home() {
     }
   };
 
-  // Função para formatar o mês/ano
+  // Função para formatar o mês/ano (mantida para uso futuro)
   function getMonthYear(date: Date) {
     return format(date, "MMMM yyyy", { locale: ptBR });
   }
@@ -146,218 +143,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f5f6fa] pb-20">
-      {/* Header roxo/lilás */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-purple to-purple-light text-white px-4 pt-8 pb-6 rounded-b-3xl shadow-md mb-8">
-        <div className="flex items-center justify-between">
-          <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-purple-dark/30 transition">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <h1 className="text-2xl font-bold tracking-tight capitalize select-none">
-            {getMonthYear(currentMonth)}
-          </h1>
-          <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-purple-dark/30 transition">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-          </button>
-        </div>
-      </div>
+      {/* Removemos o header roxo/lilás para deixar apenas o calendário com topo roxo */}
 
       {/* Calendário centralizado */}
       <div className="flex flex-col items-center mb-6 px-4">
-        <div className="bg-white rounded-2xl shadow-lg p-4 w-full max-w-md mx-auto animate-in-fade">
-          <div className="relative calendar-container">
-            {/* Cabeçalho do calendário com navegação personalizada */}
-            <div className="flex items-center justify-between mb-4">
-              <button 
-                onClick={handlePrevMonth} 
-                className="p-2 rounded-full hover:bg-gray-100 transition"
-                aria-label="Mês anterior"
-              >
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-              </button>
-              <div className="text-sm text-gray-500 uppercase tracking-wide">
-                {format(currentMonth, 'MMM yyyy', { locale: ptBR })}
-              </div>
-              <button 
-                onClick={handleNextMonth} 
-                className="p-2 rounded-full hover:bg-gray-100 transition"
-                aria-label="Próximo mês"
-              >
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-              </button>
-            </div>
-            
-            {/* Calendário */}
-            <DatePicker
-              selected={date}
-              onChange={(date: Date | null) => date && setDate(date)}
-              inline
-              locale={ptBR}
-              showMonthYearPicker={false}
-              showFullMonthYearPicker={false}
-              showTwoColumnMonthYearPicker={false}
-              showFourColumnMonthYearPicker={false}
-              monthsShown={1}
-              fixedHeight
-              disabledKeyboardNavigation
-              renderCustomHeader={({ date, decreaseMonth, increaseMonth }) => {
-                // Não renderizamos o cabeçalho padrão, pois temos o nosso próprio
-                return <></>;
-              }}
-              renderDayContents={(day, date) => {
-                if (!date) return day;
-                
-                // Verificar se há plantões nesta data
-                const plantoesNaData = plantoes.filter(plantao => 
-                  isSameDay(new Date(plantao.data), date)
-                );
-                
-                // Encontrar os locais dos plantões para obter as cores
-                const cores = plantoesNaData.map(plantao => {
-                  const local = locais.find(l => l.id === plantao.local);
-                  return local?.cor || "hsl(var(--purple))";
-                });
-                
-                return (
-                  <div className="relative h-8 flex flex-col items-center justify-center">
-                    <div>{day}</div>
-                    {plantoesNaData.length > 0 && (
-                      <div className="absolute -bottom-1 flex gap-[2px] justify-center">
-                        {cores.slice(0, 3).map((cor, i) => (
-                          <div 
-                            key={i}
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: cor }}
-                          />
-                        ))}
-                        {plantoesNaData.length > 3 && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              }}
-            />
-            
-            {/* Legenda */}
-            <div className="mt-3 text-xs text-center text-muted-foreground">
-              <div className="flex items-center justify-center gap-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-purple"></div>
-                  <span>Plantões agendados</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Estilos personalizados para o calendário */}
-            <style jsx global>{`
-              /* Estilos gerais do datepicker */
-              .react-datepicker {
-                font-family: inherit;
-                border: none;
-                border-radius: 0.5rem;
-                width: 100%;
-                background-color: transparent;
-              }
-              
-              .react-datepicker__month-container {
-                width: 100%;
-              }
-              
-              /* Esconder o header padrão */
-              .react-datepicker__header {
-                background-color: transparent;
-                border-bottom: none;
-                padding-top: 0.5rem;
-              }
-              
-              /* Estilo dos dias da semana */
-              .react-datepicker__day-name {
-                color: #6b7280;
-                font-weight: 500;
-                font-size: 0.75rem;
-                width: 2rem;
-                margin: 0.2rem;
-              }
-              
-              /* Estilo dos dias */
-              .react-datepicker__day {
-                width: 2rem;
-                height: 2rem;
-                line-height: 2rem;
-                margin: 0.2rem;
-                border-radius: 0.375rem;
-                color: #374151;
-              }
-              
-              /* Hover nos dias */
-              .react-datepicker__day:hover {
-                background-color: #f3f4f6;
-                border-radius: 0.375rem;
-              }
-              
-              /* Dia selecionado */
-              .react-datepicker__day--selected {
-                background-color: hsl(var(--purple)) !important;
-                color: white !important;
-                font-weight: 500;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-              }
-              
-              /* Forçar o fundo roxo para a data selecionada */
-              .react-datepicker__day.react-datepicker__day--selected {
-                background-color: hsl(var(--purple)) !important;
-                color: white !important;
-              }
-              
-              /* Dia atual */
-              .react-datepicker__day--today {
-                background-color: #f3f4f6 !important;
-                color: #111827 !important;
-                font-weight: 500;
-              }
-              
-              /* Dia atual quando selecionado */
-              .react-datepicker__day--today.react-datepicker__day--selected {
-                background-color: hsl(var(--purple)) !important;
-                color: white !important;
-              }
-              
-              /* Corrigir problema de cores */
-              .react-datepicker__day {
-                background-color: transparent !important;
-              }
-              
-              /* Garantir que a data selecionada tenha fundo roxo */
-              .react-datepicker__day.react-datepicker__day--keyboard-selected {
-                background-color: transparent !important;
-              }
-              
-              .react-datepicker__day.react-datepicker__day--selected {
-                background-color: hsl(var(--purple)) !important;
-              }
-              
-              /* Dias fora do mês atual */
-              .react-datepicker__day--outside-month {
-                color: #9ca3af;
-              }
-              
-              /* Ajustes para dispositivos móveis */
-              @media (max-width: 640px) {
-                .react-datepicker__day,
-                .react-datepicker__day-name {
-                  width: 1.7rem;
-                  height: 1.7rem;
-                  line-height: 1.7rem;
-                  margin: 0.1rem;
-                }
-              }
-            `}</style>
-          </div>
+        <div className="w-full max-w-md mx-auto animate-in-fade overflow-hidden">
+          <CustomCalendar 
+            date={date} 
+            onDateChange={(newDate) => setDate(newDate)} 
+            plantoes={plantoes} 
+            locais={locais} 
+          />
         </div>
       </div>
-
-
 
       {/* Lista de plantões */}
       <div className="mt-6">
