@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { ptBR } from "date-fns/locale";
-import { format, isSameDay, isSameMonth, isAfter, startOfDay, getDate } from "date-fns";
+import { format, isSameDay, isSameMonth, isAfter, isBefore, startOfDay, getDate, addDays, startOfMonth } from "date-fns";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { CustomCalendar } from "@/components/ui/custom-calendar";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ interface PlantaoCardProps {
 
 function PlantaoCard({ plantao, onEdit, onDelete }: PlantaoCardProps) {
   const { atualizarPlantao } = usePlantoes();
-  const formattedDate = format(plantao.data, "dd/MM/yyyy", { locale: ptBR });
+  const formattedDate = format(new Date(plantao.data), "dd/MM/yyyy", { locale: ptBR });
   const { locais } = useLocais();
   const [offset, setOffset] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -50,31 +50,29 @@ function PlantaoCard({ plantao, onEdit, onDelete }: PlantaoCardProps) {
         setIsDeleting(true);
         setTimeout(() => {
           onDelete(plantao);
-        }, 300); // Aguardar a animação terminar antes de excluir
+        }, 300);
       } else {
-        // Se não arrastou o suficiente, volta para a posição original
+        // Caso contrário, volta para a posição original
         setOffset(0);
       }
     },
     onSwipedRight: () => {
-      // Volta para a posição original
       setOffset(0);
     },
-    trackMouse: false,
-    trackTouch: true
+    trackMouse: false
   });
   
-  // Estilo para o card baseado no offset
+  // Estilo para o card deslizável
   const cardStyle = {
     transform: `translateX(-${offset}px)`,
-    transition: isDeleting ? 'transform 0.3s ease, opacity 0.3s ease' : 'transform 0.1s ease',
-    opacity: isDeleting ? 0 : 1
+    transition: isDeleting ? 'transform 0.3s, opacity 0.3s' : 'transform 0.1s',
+    opacity: isDeleting ? 0 : 1,
   };
   
-  // Estilo para o fundo de exclusão
+  // Estilo para o fundo vermelho com ícone de lixeira
   const deleteBackgroundStyle = {
-    opacity: offset > 0 ? 1 : 0,
-    transition: 'opacity 0.2s ease'
+    clipPath: offset > 0 ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+    transition: 'clip-path 0.1s',
   };
   
   return (
@@ -136,44 +134,80 @@ function PlantaoCard({ plantao, onEdit, onDelete }: PlantaoCardProps) {
 // Componente Página Principal
 export default function Home() {
   const [date, setDate] = useState<Date | null>(new Date());
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const { plantoes, obterPlantoesPorData, obterPlantoesPorMes, removerPlantao } = usePlantoes();
   const { locais } = useLocais();
   
+  // Data atual para comparações
+  const hoje = useMemo(() => startOfDay(new Date()), []);
+
   // Estado para controlar o modal de plantão
   const [modalAberto, setModalAberto] = useState(false);
   const [plantaoParaEditar, setPlantaoParaEditar] = useState<Plantao | undefined>(undefined);
-
-  // Função para navegação entre meses
-  function handlePrevMonth() {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  }
-
-  function handleNextMonth() {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  }
+  const isMonthBeforeToday = useMemo(() => {
+    const startOfCurrentMonth = startOfMonth(hoje);
+    return isBefore(currentMonth, startOfCurrentMonth);
+  }, [currentMonth, hoje]);
 
   // Obter plantões com base na data selecionada ou no mês atual
-  const plantoesDodia = date ? obterPlantoesPorData(date) : [];
-  
-  // Obter plantões do mês atual
-  const plantoesDoMes = obterPlantoesPorMes(
-    currentMonth.getMonth(),
-    currentMonth.getFullYear()
-  );
+  const plantoesDodia = useMemo(() => {
+    if (!date) return [];
+
+    const startOfToday = startOfDay(hoje);
+
+    // Filter plantões for the selected day
+    const plantoesBase = plantoes
+      .filter((p) => isSameDay(p.data, date))
+      .sort((a, b) => {
+        const horaA = parseInt(a.horaInicio.replace(":", ""), 10);
+        const horaB = parseInt(b.horaInicio.replace(":", ""), 10);
+        return horaA - horaB;
+      });
+
+    // If viewing a month strictly before the current month
+    if (isMonthBeforeToday) {
+      // Only show plantões that occurred *strictly before* today
+      return plantoesBase.filter(p => isBefore(p.data, startOfToday));
+    }
+
+    // For the current month or future months, show all plantões for the selected day
+    return plantoesBase;
+
+  }, [date, plantoes, isMonthBeforeToday, hoje]);
+
+  // Obter plantões do mês atual ou apenas plantões passados para meses anteriores
+  const plantoesDoMes = useMemo(() => {
+    const isCurrentMonth = isSameMonth(currentMonth, hoje);
+    const plantoesFiltrados = obterPlantoesPorMes(
+      currentMonth.getMonth(),
+      currentMonth.getFullYear()
+    );
+    
+    // Se for um mês anterior ao atual, mostrar apenas plantões passados
+    if (isMonthBeforeToday) {
+      return plantoesFiltrados.filter(p => {
+        const dataPlantao = new Date(p.data);
+        return isBefore(dataPlantao, hoje);
+      });
+    }
+    
+    return plantoesFiltrados;
+  }, [currentMonth, obterPlantoesPorMes, hoje]);
   
   // Obter próximos plantões do mês atual (a partir de hoje)
-  const hoje = new Date();
   const proximosPlantoes = useMemo(() => {
+    // Não mostrar próximos plantões se estivermos vendo um mês passado
+    if (isMonthBeforeToday) {
+      return [];
+    }
+    // Filtra plantões a partir de amanhã
+    const amanha = startOfDay(addDays(hoje, 1));
     return plantoes
-      .filter(p => {
-        // Filtrar plantões que são do mês atual e a partir de hoje
-        return isSameMonth(p.data, currentMonth) && isAfter(p.data, startOfDay(hoje));
-      })
-      .sort((a, b) => a.data.getTime() - b.data.getTime())
-      .slice(0, 5); // Limitar a 5 próximos plantões
-  }, [plantoes, currentMonth, hoje]);
-  
+      .filter((p) => isAfter(p.data, startOfDay(hoje))) // Filter for dates strictly after today
+      .filter((p) => p.data.getMonth() === currentMonth.getMonth() && p.data.getFullYear() === currentMonth.getFullYear()) // Apenas do mês atual
+      .sort((a, b) => a.data.getTime() - b.data.getTime() || parseInt(a.horaInicio.replace(":", ""), 10) - parseInt(b.horaInicio.replace(":", ""), 10));
+  }, [plantoes, currentMonth, hoje, isMonthBeforeToday]);
+
   // Abrir modal para adicionar plantão
   const abrirModalAdicionar = () => {
     setPlantaoParaEditar(undefined);
@@ -204,8 +238,6 @@ export default function Home() {
   function getMonthYear(date: Date) {
     return format(date, "MMMM yyyy", { locale: ptBR });
   }
-  
-
 
   return (
     <div className="min-h-screen bg-[#f5f6fa] pb-20">
@@ -226,50 +258,13 @@ export default function Home() {
 
       {/* Lista de plantões */}
       <div className="mt-6 px-4">
-        {date ? (
+        {/* --- Section when NO date is selected --- */}
+        {!date && (
           <>
             <h2 className="text-lg font-medium mb-3">
-              Plantões em {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : ''}
-            </h2>
-            
-            {plantoesDodia.length > 0 ? (
-              plantoesDodia.map((plantao) => (
-                <PlantaoCard
-                  key={plantao.id}
-                  plantao={plantao}
-                  onEdit={abrirModalEditar}
-                  onDelete={excluirPlantao}
-                />
-              ))
-            ) : (
-              <p className="text-muted-foreground text-sm mb-6">
-                Nenhum plantão nesta data
-              </p>
-            )}
-            
-            <h2 className="text-lg font-medium mb-3 mt-6">
-              Próximos plantões
-            </h2>
-            
-            {proximosPlantoes.length > 0 ? (
-              proximosPlantoes.map((plantao) => (
-                <PlantaoCard
-                  key={plantao.id}
-                  plantao={plantao}
-                  onEdit={abrirModalEditar}
-                  onDelete={excluirPlantao}
-                />
-              ))
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Nenhum plantão agendado
-              </p>
-            )}
-          </>
-        ) : (
-          <>
-            <h2 className="text-lg font-medium mb-3">
-              Plantões em {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+              {isMonthBeforeToday 
+                ? "Plantões realizados no mês" 
+                : `Plantões em ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}`}
             </h2>
             
             {plantoesDoMes.length > 0 ? (
@@ -283,16 +278,38 @@ export default function Home() {
               ))
             ) : (
               <p className="text-muted-foreground text-sm mb-6">
-                Nenhum plantão neste mês
+                {isMonthBeforeToday ? "Nenhum plantão realizado neste mês." : "Nenhum plantão agendado para este mês." }
               </p>
             )}
             
-            <h2 className="text-lg font-medium mb-3 mt-6">
-              Próximos plantões
+            {/* Mostrar próximos plantões apenas se não for um mês anterior (e no date selected) */}
+            {!isMonthBeforeToday && proximosPlantoes.length > 0 && (
+              <>
+                <h2 className="text-lg font-medium mb-3 mt-6">
+                  Próximos plantões
+                </h2>
+                
+                {proximosPlantoes.map((plantao) => (
+                  <PlantaoCard
+                    key={plantao.id}
+                    plantao={plantao}
+                    onEdit={abrirModalEditar}
+                    onDelete={excluirPlantao}
+                  />
+                ))}
+              </>
+            )}
+          </>
+        )}
+        
+        {/* --- Section when a date IS selected --- */}
+        {date && (
+          <>
+            <h2 className="text-lg font-medium mb-3">
+              Plantões em {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : ''}
             </h2>
-            
-            {proximosPlantoes.length > 0 ? (
-              proximosPlantoes.map((plantao) => (
+            {plantoesDodia.length > 0 ? (
+              plantoesDodia.map((plantao) => (
                 <PlantaoCard
                   key={plantao.id}
                   plantao={plantao}
@@ -301,29 +318,50 @@ export default function Home() {
                 />
               ))
             ) : (
-              <p className="text-muted-foreground text-sm">
-                Nenhum plantão agendado
-              </p>
+              !isMonthBeforeToday && (
+                <p className="text-muted-foreground text-sm mb-6">
+                  Nenhum plantão nesta data
+                </p>
+              )
+            )}
+            
+            {/* Mostrar próximos plantões apenas se não for um mês anterior (and date selected) - logic might be redundant here if handled above, but kept for clarity */}
+            {!isMonthBeforeToday && proximosPlantoes.length > 0 && (
+              <>
+                <h2 className="text-lg font-medium mb-3 mt-6">
+                  Próximos plantões
+                </h2>
+                
+                {proximosPlantoes.map((plantao) => (
+                  <PlantaoCard
+                    key={plantao.id}
+                    plantao={plantao}
+                    onEdit={abrirModalEditar}
+                    onDelete={excluirPlantao}
+                  />
+                ))}
+              </>
             )}
           </>
         )}
       </div>
 
       {/* Botão flutuante para adicionar plantão */}
-      <Button
-        className="fixed bottom-24 right-6 z-40 bg-purple hover:bg-purple-dark text-white shadow-lg rounded-full w-14 h-14 flex items-center justify-center text-3xl p-0"
-        style={{ boxShadow: '0 8px 24px 0 rgba(149,76,230,0.25)' }}
-        aria-label="Adicionar Plantão"
-        onClick={abrirModalAdicionar}
-      >
-        <Plus size={32} />
-      </Button>
-      
-      {/* Modal de formulário de plantão */}
-      <PlantaoFormDialog 
-        isOpen={modalAberto} 
-        onClose={fecharModal} 
-        plantaoParaEditar={plantaoParaEditar} 
+      <div className="fixed bottom-20 right-4">
+        <Button 
+          onClick={abrirModalAdicionar} 
+          size="icon" 
+          className="h-14 w-14 rounded-full shadow-lg bg-purple hover:bg-purple-dark"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* Modal de plantão */}
+      <PlantaoFormDialog
+        isOpen={modalAberto}
+        onClose={fecharModal}
+        plantaoParaEditar={plantaoParaEditar}
       />
     </div>
   );

@@ -82,15 +82,23 @@ export function PlantoesProvider({ children }: { children: ReactNode }) {
       });
       setPlantoes(dados);
     } else {
-      // Usar dados iniciais
-      setPlantoes(plantoesIniciais);
+      // Inicializar com array vazio se não houver dados armazenados
+      setPlantoes([]);
     }
   }, []);
 
   // Salvar dados no localStorage quando mudar
   useEffect(() => {
-    if (plantoes.length > 0) {
+    // Apenas salvar se houver plantões (evitar salvar array vazio inicial)
+    // Ou se o array estiver vazio APÓS uma remoção (para persistir o estado vazio)
+    const plantoesArmazenados = localStorage.getItem("plantoes-dados");
+    if (plantoes.length > 0 || (plantoes.length === 0 && plantoesArmazenados)) {
       localStorage.setItem("plantoes-dados", JSON.stringify(plantoes));
+    } else if (plantoes.length === 0 && !plantoesArmazenados) {
+      // Se iniciou vazio e não há nada salvo, não salva nada ainda
+    } else {
+       // Caso especial: se o array está vazio e havia dados antes, remove a chave
+       localStorage.removeItem("plantoes-dados");
     }
   }, [plantoes]);
 

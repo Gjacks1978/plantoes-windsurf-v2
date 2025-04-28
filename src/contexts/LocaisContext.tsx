@@ -58,14 +58,23 @@ export function LocaisProvider({ children }: { children: ReactNode }) {
     if (locaisArmazenados) {
       setLocais(JSON.parse(locaisArmazenados));
     } else {
-      setLocais(locaisIniciais);
+      // Inicializar com array vazio se não houver dados armazenados
+      setLocais([]);
     }
   }, []);
 
   // Salvar dados no localStorage quando mudar
   useEffect(() => {
-    if (locais.length > 0) {
+    // Apenas salvar se houver locais (evitar salvar array vazio inicial)
+    // Ou se o array estiver vazio APÓS uma remoção (para persistir o estado vazio)
+    const locaisArmazenados = localStorage.getItem("plantoes-locais");
+    if (locais.length > 0 || (locais.length === 0 && locaisArmazenados)) {
       localStorage.setItem("plantoes-locais", JSON.stringify(locais));
+    } else if (locais.length === 0 && !locaisArmazenados) {
+      // Se iniciou vazio e não há nada salvo, não salva nada ainda
+    } else {
+      // Caso especial: se o array está vazio e havia dados antes, remove a chave
+      localStorage.removeItem("plantoes-locais");
     }
   }, [locais]);
 

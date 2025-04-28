@@ -71,8 +71,8 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
       {/* Cabeçalho do calendário com estilo roxo */}
       <div className="bg-purple rounded-t-2xl p-4 text-white">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-2xl font-light">
-            {format(currentMonth, 'yyyy', { locale: ptBR })}
+          <h2 className="text-3xl font-bold">
+            {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h2>
           {/* Botão removido conforme solicitado */}
           {/* <button className="p-1 rounded-full hover:bg-purple-dark transition">
@@ -112,7 +112,7 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
               </button>
             </SwiperSlide>
             <SwiperSlide>
-              <div className="text-white text-center w-full py-2 font-medium text-lg">
+              <div className="text-white text-center w-full py-2 font-medium text-xl">
                 {format(currentMonth, 'MMMM', { locale: ptBR })}
               </div>
             </SwiperSlide>
