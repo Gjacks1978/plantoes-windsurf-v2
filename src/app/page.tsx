@@ -346,15 +346,15 @@ export default function Home() {
         )}
       </div>
 
-      {/* Botão Flutuante */}
-      <div className="fixed bottom-6 right-6 z-20">
+      {/* Botão Flutuante Redondo Fixo (igual Locais) */}
+      <div className="fixed bottom-32 right-6 z-30">
         <Button
           size="icon"
-          className="rounded-full h-14 w-14 bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+          className="rounded-full h-16 w-16 bg-purple-600 hover:bg-purple-700 text-white shadow-lg flex items-center justify-center"
           onClick={abrirModalAdicionar}
           aria-label="Adicionar Plantão"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-8 w-8" />
         </Button>
       </div>
 

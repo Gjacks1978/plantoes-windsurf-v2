@@ -134,17 +134,26 @@ export default function LocaisPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header padronizado */}
-      <div className="bg-white shadow-sm rounded-b-2xl px-4 py-4 mb-2 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-black">Locais de Plantão</h1>
-        <Button 
-          className="bg-purple hover:bg-purple-700 text-white"
-          onClick={abrirModalAdicionar}
-        >
-          <Plus className="mr-2 h-5 w-5" /> Adicionar
-        </Button>
+    <>
+      {/* Header igual ao de Pagamentos */}
+      <div className="bg-purple text-white py-4 mb-6 w-full">
+        <div className="flex justify-between items-center px-4">
+          <h1 className="text-2xl font-bold tracking-tight">Locais de Plantão</h1>
+        </div>
       </div>
+      <div className="space-y-6 px-4 pb-40">
+        {/* Botão Adicionar */}
+        {/* Botão Flutuante Redondo Fixo */}
+        <div className="fixed bottom-32 right-6 z-50">
+          <Button
+            size="icon"
+            className="rounded-full h-16 w-16 bg-purple-600 hover:bg-purple-700 text-white shadow-lg flex items-center justify-center"
+            onClick={abrirModalAdicionar}
+            aria-label="Adicionar Local"
+          >
+            <Plus className="h-8 w-8" />
+          </Button>
+        </div>
 
       {locais.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -156,8 +165,8 @@ export default function LocaisPage() {
             <LocalCard 
               key={local.id} 
               local={local} 
-              onEdit={abrirModalEditar}
-              onDelete={excluirLocal}
+              onEdit={() => abrirModalEditar(local)} 
+              onDelete={() => removerLocal(local.id)}
             />
           ))}
         </div>
@@ -170,5 +179,5 @@ export default function LocaisPage() {
         localParaEditar={localParaEditar} 
       />
     </div>
-  );
+  </>);
 }
