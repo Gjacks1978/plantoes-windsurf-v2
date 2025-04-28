@@ -34,3 +34,59 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+# Plantões
+
+Aplicativo para gerenciamento de plantões médicos.
+
+## Funcionalidades
+
+- Calendário interativo para visualizar e adicionar plantões
+- Cadastro de plantões com data, horário, local, valor e status de pagamento
+- Cadastro de locais de plantão (hospitais) com nome, endereço e cor
+- Página de pagamentos com navegação mensal e barra de progresso para pagamentos
+- Página de resumo mensal com horas trabalhadas, valores e gráficos
+- Interface moderna com cards interativos (swipe-to-delete, tap-to-edit)
+- Notificações, ajustes e exportação de dados (em desenvolvimento)
+
+## Tecnologias
+
+- Next.js 14
+- React
+- TypeScript
+- Tailwind CSS
+- Shadcn/UI
+- Context API para gerenciamento de estado
+- Recharts para visualização de dados
+- React Swipeable para gestos de swipe
+
+## Instalação
+
+```bash
+npm install
+npm run dev
+```
+
+## Estrutura do Projeto
+
+- `/src/app`: Páginas da aplicação
+- `/src/components`: Componentes reutilizáveis
+- `/src/contexts`: Contextos para gerenciamento de estado
+- `/src/lib`: Utilitários e configurações
+
+## Design e Interface
+
+- Paleta de cores: tons de roxo, branco e cinza
+- Cards interativos com swipe-to-delete e tap-to-edit
+- Navegação mensal com setas em cabeçalhos roxos
+- Barras de progresso para visualização de pagamentos
+- Gráficos interativos para análise de dados
+- Layout responsivo para mobile e desktop
+
+## Próximos Passos
+
+- Autenticação de usuários
+- Sincronização com a nuvem
+- Notificações de plantões
+- Exportação de relatórios
+- Versão mobile nativa
