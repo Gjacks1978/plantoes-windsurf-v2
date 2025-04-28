@@ -10,7 +10,7 @@ import { Plantao, Local } from "@/types";
 
 interface CustomCalendarProps {
   date: Date | null;
-  onDateChange: (date: Date) => void;
+  onDateChange: (date: Date | null) => void;
   plantoes: Plantao[];
   locais: Local[];
 }
@@ -164,7 +164,14 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
                   ${isSelected ? 'bg-purple text-white font-medium' : ''}
                   ${isToday && !isSelected ? 'bg-gray-100 font-medium' : ''}
                 `}
-                onClick={() => onDateChange(dayInfo.date)}
+                onClick={() => {
+                  // Se a data já está selecionada, desmarcar
+                  if (date && isSameDay(dayInfo.date, date)) {
+                    onDateChange(null);
+                  } else {
+                    onDateChange(dayInfo.date);
+                  }
+                }}
                 disabled={!dayInfo.isCurrentMonth}
               >
                 <span>{dayInfo.date.getDate()}</span>
