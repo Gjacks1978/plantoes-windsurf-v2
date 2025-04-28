@@ -1,30 +1,37 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Filter, Search, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { usePlantoes } from "@/contexts/PlantoesContext";
 import { useLocais } from "@/contexts/LocaisContext";
-import { format } from "date-fns";
+import { format, addMonths, subMonths, getMonth, getYear, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useSwipeable } from "react-swipeable";
 import { Switch } from "@/components/ui/switch";
 import { PlantaoFormDialog } from "@/components/plantoes/plantao-form-dialog";
+import { Progress } from "@/components/ui/progress";
 
 export default function PagamentosPage() {
   const { plantoes, marcarComoPago, atualizarPlantao } = usePlantoes();
   const { locais } = useLocais();
   const [filtro, setFiltro] = useState("todos");
-  const [busca, setBusca] = useState("");
-  const [filtroLocal, setFiltroLocal] = useState("todos");
+  const [mesSelecionado, setMesSelecionado] = useState(new Date());
   const [plantaoEmEdicao, setPlantaoEmEdicao] = useState<any | null>(null);
   const [dialogoAberto, setDialogoAberto] = useState(false);
+  
+  // Navegação entre meses
+  const irParaMesAnterior = () => {
+    setMesSelecionado(prev => subMonths(prev, 1));
+  };
+  
+  const irParaProximoMes = () => {
+    setMesSelecionado(prev => addMonths(prev, 1));
+  };
   
   // Filtrar plantões com base nos critérios
   const plantoesFiltrados = useMemo(() => {
@@ -36,34 +43,33 @@ export default function PagamentosPage() {
         return true; // "todos"
       })
       .filter(plantao => {
-        // Filtro por local
-        if (filtroLocal !== "todos") return plantao.local === filtroLocal;
-        return true;
-      })
-      .filter(plantao => {
-        // Filtro por busca (título ou local)
-        if (!busca) return true;
-        
-        const localNome = locais.find(l => l.id === plantao.local)?.nome || "";
-        const dataFormatada = format(new Date(plantao.data), "dd/MM/yyyy", { locale: ptBR });
-        
+        // Filtro por mês selecionado
+        const dataPlantao = new Date(plantao.data);
         return (
-          plantao.title.toLowerCase().includes(busca.toLowerCase()) ||
-          localNome.toLowerCase().includes(busca.toLowerCase()) ||
-          dataFormatada.includes(busca)
+          getMonth(dataPlantao) === getMonth(mesSelecionado) &&
+          getYear(dataPlantao) === getYear(mesSelecionado)
         );
       })
       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()); // Ordenar por data decrescente
-  }, [plantoes, filtro, busca, filtroLocal, locais]);
+  }, [plantoes, filtro, mesSelecionado]);
   
-  // Calcular totais
+  // Calcular totais para o mês selecionado
   const totais = useMemo(() => {
-    const valorTotal = plantoes.reduce((acc, p) => acc + p.valor, 0);
-    const valorPago = plantoes.filter(p => p.pago).reduce((acc, p) => acc + p.valor, 0);
-    const valorPendente = valorTotal - valorPago;
+    const plantoesMes = plantoes.filter(plantao => {
+      const dataPlantao = new Date(plantao.data);
+      return (
+        getMonth(dataPlantao) === getMonth(mesSelecionado) &&
+        getYear(dataPlantao) === getYear(mesSelecionado)
+      );
+    });
     
-    return { valorTotal, valorPago, valorPendente };
-  }, [plantoes]);
+    const valorTotal = plantoesMes.reduce((acc, p) => acc + p.valor, 0);
+    const valorPago = plantoesMes.filter(p => p.pago).reduce((acc, p) => acc + p.valor, 0);
+    const valorPendente = valorTotal - valorPago;
+    const percentualPago = valorTotal > 0 ? (valorPago / valorTotal) * 100 : 0;
+    
+    return { valorTotal, valorPago, valorPendente, percentualPago };
+  }, [plantoes, mesSelecionado]);
   
   // Marcar um plantão como pago
   const handleMarcarComoPago = (id: string) => {
@@ -97,140 +103,106 @@ export default function PagamentosPage() {
   };
   
   return (
-    <div className="space-y-6 pb-8 px-4">
-      <h1 className="text-2xl font-bold tracking-tight">Pagamentos</h1>
+    <div className="pb-8">
+      {/* Cabeçalho com navegação por mês */}
+      <div className="bg-purple text-white py-4 px-4 mb-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold tracking-tight">Pagamentos</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-purple-dark" onClick={irParaMesAnterior}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <span className="text-lg font-medium">
+              {format(mesSelecionado, 'MMMM yyyy', { locale: ptBR })}
+            </span>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-purple-dark" onClick={irParaProximoMes}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
       
-      {/* Card de resumo consolidado */}
-      <Card className="shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="py-5">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-purple/10 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">Resumo Financeiro</h3>
-                <p className="text-xs text-muted-foreground">Visão geral dos seus pagamentos</p>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap justify-center sm:justify-end gap-6 sm:gap-8 w-full sm:w-auto">
-              <div className="flex flex-col items-center sm:items-start">
-                <p className="text-sm font-medium text-muted-foreground">Total</p>
-                <div className="text-xl font-bold">
+      <div className="space-y-6 px-4">
+        {/* Card de resumo com barra de progresso */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="py-5">
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-center">
+                <div className="text-2xl font-bold">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totais.valorTotal)}
                 </div>
               </div>
               
-              <div className="flex flex-col items-center sm:items-start">
-                <p className="text-sm font-medium text-muted-foreground">Pago</p>
-                <div className="text-xl font-bold text-success">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totais.valorPago)}
-                </div>
-              </div>
-              
-              <div className="flex flex-col items-center sm:items-start">
-                <p className="text-sm font-medium text-muted-foreground">Pendente</p>
-                <div className="text-xl font-bold text-amber-600">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totais.valorPendente)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Filtros e busca */}
-      <Card className="shadow-sm border-muted/40">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar plantão..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            
-            <div className="flex gap-3 flex-wrap sm:flex-nowrap">
-              <Select value={filtro} onValueChange={setFiltro}>
-                <SelectTrigger className="w-full sm:w-[140px] bg-white">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    <SelectValue placeholder="Status" />
+              <div className="space-y-2">
+                <Progress value={totais.percentualPago} className="h-3" />
+                
+                <div className="flex justify-between items-center text-sm">
+                  <div>
+                    <span className="font-medium text-success">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totais.valorPago)}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-1">Pago</span>
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="pagos">Pagos</SelectItem>
-                  <SelectItem value="pendentes">Pendentes</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={filtroLocal} onValueChange={setFiltroLocal}>
-                <SelectTrigger className="w-full sm:w-[180px] bg-white">
-                  <SelectValue placeholder="Local" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os locais</SelectItem>
-                  {locais.map(local => (
-                    <SelectItem key={local.id} value={local.id}>{local.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <div className="flex-1 flex justify-end">
-                <div className="text-xs text-muted-foreground self-center">
-                  {plantoesFiltrados.length} {plantoesFiltrados.length === 1 ? 'plantão encontrado' : 'plantões encontrados'}
+                  
+                  <div className="text-right">
+                    <span className="font-medium text-amber-600">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totais.valorPendente)}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-1">Pendente</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        
+        {/* Abas para filtrar por status */}
+        <Tabs defaultValue="todos" value={filtro} onValueChange={setFiltro} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-muted/30">
+            <TabsTrigger value="todos" className="data-[state=active]:bg-white data-[state=active]:text-purple-dark data-[state=active]:shadow-sm">Todos</TabsTrigger>
+            <TabsTrigger value="pagos" className="data-[state=active]:bg-white data-[state=active]:text-purple-dark data-[state=active]:shadow-sm">Pagos</TabsTrigger>
+            <TabsTrigger value="pendentes" className="data-[state=active]:bg-white data-[state=active]:text-purple-dark data-[state=active]:shadow-sm">Pendentes</TabsTrigger>
+          </TabsList>
+        </Tabs>
       
-      {/* Lista de plantões */}
-      <div>
-        {plantoesFiltrados.length === 0 ? (
-          <Card className="bg-muted/20 border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-10">
-              <p className="text-center text-muted-foreground mb-1">
-                Nenhum plantão encontrado com os filtros selecionados.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Tente ajustar os filtros ou adicionar novos plantões.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3 mt-1">
-            {plantoesFiltrados.map(plantao => {
-              const localInfo = locais.find(l => l.id === plantao.local);
-              const formattedDate = format(new Date(plantao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-              
-              // Componente de card com swipe-to-delete
-              return (
-                <PlantaoCard 
-                  key={plantao.id} 
-                  plantao={plantao} 
-                  localInfo={localInfo}
-                  formattedDate={formattedDate}
-                  onEdit={handleEditarPlantao}
-                  onDelete={handleExcluirPlantao}
-                  onTogglePago={(novoStatus) => {
-                    atualizarPlantao(plantao.id, { ...plantao, pago: novoStatus });
-                    toast.success(`Plantão marcado como ${novoStatus ? 'pago' : 'pendente'}`);
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
+        {/* Lista de plantões */}
+        <div className="mt-4">
+          {plantoesFiltrados.length === 0 ? (
+            <Card className="bg-muted/20 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <p className="text-center text-muted-foreground mb-1">
+                  Nenhum plantão encontrado {filtro !== "todos" ? `com status "${filtro}"` : ""} em {format(mesSelecionado, 'MMMM yyyy', { locale: ptBR })}.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tente selecionar outro mês ou adicionar novos plantões.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {plantoesFiltrados.map(plantao => {
+                const localInfo = locais.find(l => l.id === plantao.local);
+                const formattedDate = format(new Date(plantao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+                
+                // Componente de card com swipe-to-delete
+                return (
+                  <PlantaoCard 
+                    key={plantao.id} 
+                    plantao={plantao} 
+                    localInfo={localInfo}
+                    formattedDate={formattedDate}
+                    onEdit={handleEditarPlantao}
+                    onDelete={handleExcluirPlantao}
+                    onTogglePago={(novoStatus) => {
+                      atualizarPlantao(plantao.id, { ...plantao, pago: novoStatus });
+                      toast.success(`Plantão marcado como ${novoStatus ? 'pago' : 'pendente'}`);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Diálogo de edição */}
