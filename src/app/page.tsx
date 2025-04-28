@@ -158,7 +158,11 @@ export default function Home() {
 
   // --- Handlers ---
   const abrirModalAdicionar = () => {
-    setPlantaoParaEditar(undefined);
+    if (date) {
+      setPlantaoParaEditar({ data: date });
+    } else {
+      setPlantaoParaEditar(undefined);
+    }
     setModalAberto(true);
   };
 
@@ -216,9 +220,15 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f6fa] pb-24">
+    <div className="min-h-screen bg-[#f5f6fa] pb-36">
+      {/* Título */}
+      <div className="w-full max-w-2xl mx-auto px-4">
+        <h1 className="text-3xl font-bold text-black mb-4 mt-6">Meus Plantões</h1>
+      </div>
+
+
       {/* Calendário */}
-      <div className="bg-white shadow-sm mb-4 pb-2 sticky top-0 z-10">
+      <div className="shadow-sm mb-4 pb-2 w-full max-w-2xl mx-auto px-4">
           <CustomCalendar
             date={date}
             onDateChange={(newDate: Date | null) => { 

@@ -23,14 +23,14 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body 
         className={cn(
-          "min-h-screen bg-background font-sans antialiased", 
+          "min-h-screen bg-[#f5f6fa] font-sans antialiased", 
           inter.variable,
           "pb-16" // Adicionando padding inferior para a navegação
         )}
       >
         <AppProvider>
           {/* Conteúdo principal */}
-          <main className="container mx-auto px-4 py-4 h-full">
+          <main className="h-full w-full">
             {children}
           </main>
 

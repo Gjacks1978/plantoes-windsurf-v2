@@ -68,11 +68,11 @@ export function CustomCalendar({
   };
 
   return (
-    <div className="calendar-container overflow-hidden">
+    <div className="calendar-container overflow-hidden max-w-2xl w-full mx-auto">
       <div className="bg-purple rounded-t-2xl p-4 text-white">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-3xl font-bold">
-            {format(month, 'MMMM yyyy', { locale: ptBR })}
+        <div className="mb-2 flex justify-center">
+          <h2 className="text-2xl text-white text-center">
+            {month.getFullYear()}
           </h2>
         </div>
         
@@ -93,7 +93,7 @@ export function CustomCalendar({
             <SwiperSlide>
               <button 
                 onClick={() => onMonthChange(subMonths(month, 2))}
-                className="text-white/70 text-center w-full py-2 font-light"
+                className="text-white/70 text-center w-full py-2 font-light text-2xl"
               >
                 {format(subMonths(month, 2), 'MMMM', { locale: ptBR })}
               </button>
@@ -101,20 +101,20 @@ export function CustomCalendar({
             <SwiperSlide>
               <button 
                 onClick={() => onMonthChange(subMonths(month, 1))}
-                className="text-white/70 text-center w-full py-2 font-light"
+                className="text-white/70 text-center w-full py-2 font-light text-2xl"
               >
                 {format(subMonths(month, 1), 'MMMM', { locale: ptBR })}
               </button>
             </SwiperSlide>
             <SwiperSlide>
-              <div className="text-white text-center w-full py-2 font-medium text-xl">
+              <div className="text-white text-center w-full py-2 font-bold text-3xl">
                 {format(month, 'MMMM', { locale: ptBR })}
               </div>
             </SwiperSlide>
             <SwiperSlide>
               <button 
                 onClick={() => onMonthChange(addMonths(month, 1))}
-                className="text-white/70 text-center w-full py-2 font-light"
+                className="text-white/70 text-center w-full py-2 font-light text-2xl"
               >
                 {format(addMonths(month, 1), 'MMMM', { locale: ptBR })}
               </button>
@@ -122,7 +122,7 @@ export function CustomCalendar({
             <SwiperSlide>
               <button 
                 onClick={() => onMonthChange(addMonths(month, 2))}
-                className="text-white/70 text-center w-full py-2 font-light"
+                className="text-white/70 text-center w-full py-2 font-light text-2xl"
               >
                 {format(addMonths(month, 2), 'MMMM', { locale: ptBR })}
               </button>
@@ -131,7 +131,7 @@ export function CustomCalendar({
         </div>
       </div>
       
-      <div className="bg-white rounded-b-2xl p-4 shadow-lg">
+      <div className="bg-white rounded-b-2xl p-4">
         <div className="grid grid-cols-7 mb-2">
           {['d', 's', 't', 'q', 'q', 's', 's'].map((day, index) => (
             <div key={index} className="text-center text-xs text-indigo-300 font-normal">

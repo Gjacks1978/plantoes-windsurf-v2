@@ -134,14 +134,15 @@ export default function LocaisPage() {
   };
 
   return (
-    <div className="space-y-6 px-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Locais de Plantão</h1>
+    <div className="space-y-6">
+      {/* Header padronizado */}
+      <div className="bg-white shadow-sm rounded-b-2xl px-4 py-4 mb-2 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-black">Locais de Plantão</h1>
         <Button 
-          className="bg-purple hover:bg-purple-dark"
+          className="bg-purple hover:bg-purple-700 text-white"
           onClick={abrirModalAdicionar}
         >
-          <Plus className="mr-2 h-4 w-4" /> Adicionar
+          <Plus className="mr-2 h-5 w-5" /> Adicionar
         </Button>
       </div>
 

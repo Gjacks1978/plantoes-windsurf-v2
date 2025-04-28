@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,28 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   const [observacoes, setObservacoes] = useState(plantaoParaEditar?.observacoes || "");
   const [repetir, setRepetir] = useState("nao"); // Novo estado para repetição
   const [diasSemana, setDiasSemana] = useState<string[]>([]); // Estado para dias da semana selecionados
+
+  // Atualiza os campos ao abrir para edição
+  useEffect(() => {
+    if (plantaoParaEditar) {
+      setLocalId(plantaoParaEditar.local || "");
+      setData(plantaoParaEditar.data || new Date());
+      setHoraInicio(plantaoParaEditar.horaInicio || "07:00");
+      setHoraFim(plantaoParaEditar.horaFim || "19:00");
+      setValor(plantaoParaEditar.valor?.toString() || "");
+      setPago(plantaoParaEditar.pago || false);
+      setObservacoes(plantaoParaEditar.observacoes || "");
+      // ... outros campos se houver
+    } else {
+      setLocalId("");
+      setData(new Date());
+      setHoraInicio("07:00");
+      setHoraFim("19:00");
+      setValor("");
+      setPago(false);
+      setObservacoes("");
+    }
+  }, [plantaoParaEditar, isOpen]);
 
   // Estado de validação
   const [erros, setErros] = useState<Record<string, string>>({});
