@@ -245,10 +245,14 @@ export default function Home() {
       <div className="pb-6">
         {/* Cenário 1 & 2: Mês Passado ou Futuro - Usa a lista pré-filtrada */}        
         {(isPastMonthView || isFutureMonthView) && (
-          renderPlantaoList(
-            plantoesDoMesInteiro, 
-            `Plantões em ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}`,
-            "Nenhum plantão encontrado neste mês."
+          plantoesDoMesInteiro.length > 0 ? (
+            renderPlantaoList(
+              plantoesDoMesInteiro, 
+              `Plantões em ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}`,
+              "Nenhum plantão encontrado neste mês."
+            )
+          ) : (
+            <div className="text-center text-muted-foreground py-10 text-base">Nenhum plantão neste mês.</div>
           )
         )}
 
@@ -268,8 +272,6 @@ export default function Home() {
             {(!date || isTodaySelected) && (
               <>
                 {renderPlantaoList(
-                  // Se 'date' for null (nenhuma seleção), busca plantões de HOJE
-                  // Se 'date' for o dia de hoje, usa plantoesDoDiaSelecionado
                   plantoesDoDiaSelecionado, 
                   isTodaySelected ? `Plantões de Hoje (${format(hoje, "dd/MM")})` : `Plantões de Hoje (${format(hoje, "dd/MM")})`, 
                   "Nenhum plantão hoje."
@@ -283,6 +285,10 @@ export default function Home() {
                   plantoesPassadosNoMesAtual,
                   "Plantões passados no mês",
                   ""
+                )}
+                {/* Se todas as listas estiverem vazias, mostra mensagem */}
+                {plantoesDoDiaSelecionado.length === 0 && plantoesFuturosNoMesAtual.length === 0 && plantoesPassadosNoMesAtual.length === 0 && (
+                  <div className="text-center text-muted-foreground py-10 text-base">Nenhum plantão neste mês.</div>
                 )}
               </>
             )}
@@ -300,15 +306,18 @@ export default function Home() {
                         "Plantões passados no mês (antes da data selecionada)",
                         ""
                     )}
+                    {/* Se ambas as listas estiverem vazias, mostra mensagem */}
+                    {plantoesFuturosNoMesAtual.length === 0 && plantoesPassadosNoMesAtual.length === 0 && (
+                      <div className="text-center text-muted-foreground py-10 text-base">Nenhum plantão neste mês.</div>
+                    )}
                 </>
             )}
 
             {/* Subcenário 3.4: Data futura selecionada - mostra Futuros e Passados */}
             {date && !isTodaySelected && isAfter(date, hoje) && (
                  <>
-                     {/* Já mostrado em 3.1 */} 
                      {renderPlantaoList(
-                        plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)), // Exclui o dia já mostrado
+                        plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)),
                         "Outros próximos plantões no mês",
                         ""
                      )}
@@ -316,6 +325,10 @@ export default function Home() {
                          plantoesPassadosNoMesAtual,
                          "Plantões passados no mês",
                          ""
+                     )}
+                     {/* Se ambas as listas estiverem vazias, mostra mensagem */}
+                     {plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)).length === 0 && plantoesPassadosNoMesAtual.length === 0 && (
+                       <div className="text-center text-muted-foreground py-10 text-base">Nenhum plantão neste mês.</div>
                      )}
                  </>
             )}
