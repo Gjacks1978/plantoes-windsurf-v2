@@ -37,6 +37,7 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   const [pago, setPago] = useState(plantaoParaEditar?.pago || false);
   const [observacoes, setObservacoes] = useState(plantaoParaEditar?.observacoes || "");
   const [repetir, setRepetir] = useState("nao"); // Novo estado para repetição
+  const [diasSemana, setDiasSemana] = useState<string[]>([]); // Estado para dias da semana selecionados
 
   // Estado de validação
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -51,6 +52,7 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     setPago(false);
     setObservacoes("");
     setRepetir("nao");
+    setDiasSemana([]);
     setErros({});
   };
 
@@ -111,6 +113,47 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
       // Adicionar plantão único ou repetido
       if (repetir === "nao") {
         adicionarPlantao(plantaoData);
+      } else if (repetir === "dias-semana") {
+        // Repetir nos dias da semana selecionados por 4 semanas
+        if (diasSemana.length > 0) {
+          // Adicionar o plantão original se for um dos dias selecionados
+          const diaOriginal = data.getDay();
+          const diasSemanaNumeros = diasSemana.map(dia => {
+            const map: Record<string, number> = { "dom": 0, "seg": 1, "ter": 2, "qua": 3, "qui": 4, "sex": 5, "sab": 6 };
+            return map[dia];
+          });
+          
+          if (diasSemanaNumeros.includes(diaOriginal)) {
+            adicionarPlantao(plantaoData);
+          }
+          
+          // Criar plantões para os próximos 28 dias (4 semanas)
+          for (let i = 1; i <= 28; i++) {
+            const novaData = new Date(data);
+            novaData.setDate(novaData.getDate() + i);
+            
+            // Verificar se o dia da semana está entre os selecionados
+            if (diasSemanaNumeros.includes(novaData.getDay())) {
+              adicionarPlantao({
+                ...plantaoData,
+                data: novaData
+              });
+            }
+          }
+        }
+      } else if (repetir === "diario") {
+        // Repetir diariamente por 7 dias
+        adicionarPlantao(plantaoData); // Adicionar o plantão original
+        
+        for (let i = 1; i <= 7; i++) {
+          const novaData = new Date(data);
+          novaData.setDate(novaData.getDate() + i);
+          
+          adicionarPlantao({
+            ...plantaoData,
+            data: novaData
+          });
+        }
       } else {
         // Implementar lógica de repetição baseada na opção selecionada
         const repeticoes = {
@@ -266,11 +309,50 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nao">Não repetir</SelectItem>
+                  <SelectItem value="diario">Diariamente (7 dias)</SelectItem>
+                  <SelectItem value="dias-semana">Dias da semana (4 semanas)</SelectItem>
                   <SelectItem value="semanal">Semanalmente (4 semanas)</SelectItem>
                   <SelectItem value="quinzenal">Quinzenalmente (30 dias)</SelectItem>
                   <SelectItem value="mensal">Mensalmente (3 meses)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          
+          {/* Seletor de dias da semana (aparece apenas quando "Dias da semana" é selecionado) */}
+          {!editando && repetir === "dias-semana" && (
+            <div className="grid gap-2">
+              <Label>Selecione os dias</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: "dom", label: "Dom" },
+                  { id: "seg", label: "Seg" },
+                  { id: "ter", label: "Ter" },
+                  { id: "qua", label: "Qua" },
+                  { id: "qui", label: "Qui" },
+                  { id: "sex", label: "Sex" },
+                  { id: "sab", label: "Sáb" }
+                ].map((dia) => (
+                  <Button
+                    key={dia.id}
+                    type="button"
+                    variant={diasSemana.includes(dia.id) ? "default" : "outline"}
+                    className={`h-9 w-9 p-0 ${diasSemana.includes(dia.id) ? 'bg-purple hover:bg-purple-dark text-white' : ''}`}
+                    onClick={() => {
+                      if (diasSemana.includes(dia.id)) {
+                        setDiasSemana(diasSemana.filter(d => d !== dia.id));
+                      } else {
+                        setDiasSemana([...diasSemana, dia.id]);
+                      }
+                    }}
+                  >
+                    {dia.label}
+                  </Button>
+                ))}
+              </div>
+              {diasSemana.length === 0 && repetir === "dias-semana" && (
+                <p className="text-xs text-amber-500">Selecione pelo menos um dia da semana</p>
+              )}
             </div>
           )}
 
@@ -295,7 +377,9 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar}>Salvar</Button>
+          <Button onClick={handleSalvar} className="bg-purple hover:bg-purple-dark text-white">
+            Salvar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
