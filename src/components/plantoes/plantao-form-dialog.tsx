@@ -108,7 +108,72 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     };
 
     if (editando && plantaoParaEditar) {
+      // Atualizar o plantão original
       atualizarPlantao(plantaoParaEditar.id, plantaoData);
+      
+      // Se o usuário escolheu repetir, cria novos plantões a partir deste
+      if (repetir !== "nao") {
+        // Cria novos plantões com base na opção de repetição
+        if (repetir === "dias-semana") {
+          // Repetição por dias da semana
+          if (diasSemana.length > 0) {
+            const diaOriginal = data.getDay();
+            const diasSemanaNumeros = diasSemana.map(dia => {
+              const map: Record<string, number> = { "dom": 0, "seg": 1, "ter": 2, "qua": 3, "qui": 4, "sex": 5, "sab": 6 };
+              return map[dia];
+            });
+            
+            // Criar plantões para os próximos 28 dias (4 semanas)
+            for (let i = 1; i <= 28; i++) {
+              const novaData = new Date(data);
+              novaData.setDate(novaData.getDate() + i);
+              
+              // Verificar se o dia da semana está entre os selecionados
+              if (diasSemanaNumeros.includes(novaData.getDay())) {
+                adicionarPlantao({
+                  ...plantaoData,
+                  data: novaData
+                });
+              }
+            }
+          }
+        } else if (repetir === "diario") {
+          // Repetição diária
+          for (let i = 1; i <= 7; i++) {
+            const novaData = new Date(data);
+            novaData.setDate(novaData.getDate() + i);
+            
+            adicionarPlantao({
+              ...plantaoData,
+              data: novaData
+            });
+          }
+        } else {
+          // Repetição semanal, quinzenal ou mensal
+          const repeticoes = {
+            "semanal": 4,  // 4 semanas
+            "quinzenal": 2, // 2 repetições (30 dias)
+            "mensal": 3,   // 3 meses
+          }[repetir] || 1;
+          
+          for (let i = 1; i <= repeticoes; i++) {
+            const novaData = new Date(data);
+            
+            if (repetir === "semanal") {
+              novaData.setDate(novaData.getDate() + (7 * i)); // Adicionar semanas
+            } else if (repetir === "quinzenal") {
+              novaData.setDate(novaData.getDate() + (15 * i)); // Adicionar 15 dias
+            } else if (repetir === "mensal") {
+              novaData.setMonth(novaData.getMonth() + i); // Adicionar meses
+            }
+            
+            adicionarPlantao({
+              ...plantaoData,
+              data: novaData
+            });
+          }
+        }
+      }
     } else {
       // Adicionar plantão único ou repetido
       if (repetir === "nao") {
@@ -300,27 +365,30 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
           </div>
 
           {/* Repetir plantão */}
-          {!editando && (
-            <div className="grid gap-2">
-              <Label htmlFor="repetir">Repetir plantão</Label>
-              <Select value={repetir} onValueChange={setRepetir}>
-                <SelectTrigger id="repetir">
-                  <SelectValue placeholder="Selecione uma opção" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nao">Não repetir</SelectItem>
-                  <SelectItem value="diario">Diariamente (7 dias)</SelectItem>
-                  <SelectItem value="dias-semana">Dias da semana (4 semanas)</SelectItem>
-                  <SelectItem value="semanal">Semanalmente (4 semanas)</SelectItem>
-                  <SelectItem value="quinzenal">Quinzenalmente (30 dias)</SelectItem>
-                  <SelectItem value="mensal">Mensalmente (3 meses)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="grid gap-2">
+            <Label htmlFor="repetir">{editando ? "Repetir a partir deste plantão" : "Repetir plantão"}</Label>
+            <Select value={repetir} onValueChange={setRepetir}>
+              <SelectTrigger id="repetir">
+                <SelectValue placeholder="Selecione uma opção" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nao">Não repetir</SelectItem>
+                <SelectItem value="diario">Diariamente (7 dias)</SelectItem>
+                <SelectItem value="dias-semana">Dias da semana (4 semanas)</SelectItem>
+                <SelectItem value="semanal">Semanalmente (4 semanas)</SelectItem>
+                <SelectItem value="quinzenal">Quinzenalmente (30 dias)</SelectItem>
+                <SelectItem value="mensal">Mensalmente (3 meses)</SelectItem>
+              </SelectContent>
+            </Select>
+            {editando && (
+              <p className="text-xs text-muted-foreground">
+                Novas repetições serão criadas a partir da data deste plantão, sem alterar o plantão original.
+              </p>
+            )}
+          </div>
           
           {/* Seletor de dias da semana (aparece apenas quando "Dias da semana" é selecionado) */}
-          {!editando && repetir === "dias-semana" && (
+          {repetir === "dias-semana" && (
             <div className="grid gap-2">
               <Label>Selecione os dias</Label>
               <div className="flex flex-wrap gap-2">

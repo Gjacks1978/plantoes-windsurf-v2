@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { ptBR } from "date-fns/locale";
 import { format, isSameDay, isSameMonth, isAfter, startOfDay, getDate } from "date-fns";
 import { Plus, Edit, Trash2 } from "lucide-react";
@@ -8,11 +8,13 @@ import { CustomCalendar } from "@/components/ui/custom-calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { usePlantoes } from "@/contexts/PlantoesContext";
 import { useLocais } from "@/contexts/LocaisContext";
 import { Plantao, Local } from "@/types";
 import { PlantaoFormDialog } from "@/components/plantoes/plantao-form-dialog";
 import { toast } from "sonner";
+import { useSwipeable } from "react-swipeable";
 
 // Componente de Card de Plantão com informações do local
 
@@ -23,47 +25,111 @@ interface PlantaoCardProps {
 }
 
 function PlantaoCard({ plantao, onEdit, onDelete }: PlantaoCardProps) {
+  const { atualizarPlantao } = usePlantoes();
   const formattedDate = format(plantao.data, "dd/MM/yyyy", { locale: ptBR });
   const { locais } = useLocais();
+  const [offset, setOffset] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   
   // Encontrar o local do plantão
   const localInfo = locais.find(l => l.id === plantao.local);
   
+  // Configuração do swipe
+  const swipeHandlers = useSwipeable({
+    onSwiping: (event) => {
+      if (event.dir === "Left") {
+        // Limitar o arrasto para no máximo 100px
+        const newOffset = Math.min(Math.abs(event.deltaX), 100);
+        setOffset(newOffset);
+      }
+    },
+    onSwipedLeft: (event) => {
+      if (Math.abs(event.deltaX) >= 100) {
+        // Se arrastou mais de 100px, inicia a animação de exclusão
+        setIsDeleting(true);
+        setTimeout(() => {
+          onDelete(plantao);
+        }, 300); // Aguardar a animação terminar antes de excluir
+      } else {
+        // Se não arrastou o suficiente, volta para a posição original
+        setOffset(0);
+      }
+    },
+    onSwipedRight: () => {
+      // Volta para a posição original
+      setOffset(0);
+    },
+    trackMouse: false,
+    trackTouch: true
+  });
+  
+  // Estilo para o card baseado no offset
+  const cardStyle = {
+    transform: `translateX(-${offset}px)`,
+    transition: isDeleting ? 'transform 0.3s ease, opacity 0.3s ease' : 'transform 0.1s ease',
+    opacity: isDeleting ? 0 : 1
+  };
+  
+  // Estilo para o fundo de exclusão
+  const deleteBackgroundStyle = {
+    opacity: offset > 0 ? 1 : 0,
+    transition: 'opacity 0.2s ease'
+  };
+  
   return (
-    <Card className="mb-3 animate-in-slide relative overflow-hidden">
+    <div className="relative mb-1.5 overflow-hidden">
+      {/* Fundo vermelho com ícone de lixeira */}
       <div 
-        className="absolute left-0 top-0 bottom-0 w-1" 
-        style={{ backgroundColor: localInfo?.cor || "hsl(var(--purple))" }}
-      />
-      <CardContent className="p-4 pl-6">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h3 className="font-medium">{plantao.title}</h3>
-            <p className="text-sm text-muted-foreground">{localInfo?.nome || "Local não encontrado"}</p>
-            <p className="text-xs text-muted-foreground">{formattedDate}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={plantao.pago ? "bg-success/20 text-success border-success/30" : ""}>
-              {plantao.pago ? "Pago" : "Pendente"}
-            </Badge>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(plantao)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(plantao)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="text-sm mt-2 flex justify-between items-center">
-          <div className="text-muted-foreground">
-            {plantao.horaInicio} - {plantao.horaFim}
-          </div>
-          <div className="font-medium">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plantao.valor)}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        className="absolute inset-0 flex items-center justify-end bg-red-500 text-white pr-4"
+        style={deleteBackgroundStyle}
+      >
+        <Trash2 className="h-6 w-6" />
+      </div>
+      
+      {/* Card deslizável */}
+      <div style={cardStyle} {...swipeHandlers}>
+        <Card className="animate-in-slide relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => onEdit(plantao)}>
+          <div 
+            className="absolute left-0 top-0 bottom-0 w-1" 
+            style={{ backgroundColor: localInfo?.cor || "hsl(var(--purple))" }}
+          />
+          <CardContent className="py-1 px-4 pl-6">
+            <div className="flex justify-between items-start mb-0.5">
+              <div>
+                <h3 className="font-medium text-purple-dark">{plantao.title}</h3>
+                <p className="text-xs text-muted-foreground">{localInfo?.nome || "Local não encontrado"}</p>
+                <p className="text-xs text-muted-foreground">{formattedDate}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <div className="text-sm font-semibold text-slate-700">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plantao.valor)}
+                </div>
+                <Badge variant="outline" className={`text-xs py-0 px-2 ${plantao.pago ? "bg-success/20 text-success border-success/30" : "bg-amber-500/20 text-amber-700 border-amber-500/30"}`}>
+                  {plantao.pago ? "Pago" : "Pendente"}
+                </Badge>
+                <div className="mt-1" onClick={(e) => {
+                  e.stopPropagation(); // Evitar que o clique propague para o card
+                  const novoStatus = !plantao.pago;
+                  atualizarPlantao(plantao.id, { ...plantao, pago: novoStatus });
+                  toast.success(`Plantão marcado como ${novoStatus ? 'pago' : 'pendente'}`);
+                }}>
+                  <Switch 
+                    checked={plantao.pago} 
+                    className="scale-90 data-[state=checked]:bg-success"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="text-xs mt-0.5 flex justify-start items-center">
+              <div className="text-muted-foreground">
+                {plantao.horaInicio} - {plantao.horaFim}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
