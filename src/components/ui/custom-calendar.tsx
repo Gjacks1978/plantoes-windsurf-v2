@@ -13,52 +13,53 @@ interface CustomCalendarProps {
   onDateChange: (date: Date | null) => void;
   plantoes: Plantao[];
   locais: Local[];
+  month: Date;
+  onMonthChange: (month: Date) => void;
 }
 
-export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState<Date>(date || new Date());
+export function CustomCalendar({ 
+  date, 
+  onDateChange, 
+  plantoes, 
+  locais, 
+  month, 
+  onMonthChange 
+}: CustomCalendarProps) {
   const [calendarDays, setCalendarDays] = useState<Array<{ date: Date; isCurrentMonth: boolean }>>([]);
 
-  // Gera os dias do calendário para o mês atual
   useEffect(() => {
     const days = [];
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const year = month.getFullYear();
+    const monthIndex = month.getMonth();
     
-    // Primeiro dia do mês
-    const firstDay = new Date(year, month, 1);
-    // Último dia do mês
-    const lastDay = new Date(year, month + 1, 0);
+    const firstDay = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
     
-    // Dias do mês anterior para completar a primeira semana
-    const startDay = firstDay.getDay() || 7; // Domingo é 0, convertemos para 7
+    const startDay = firstDay.getDay() === 0 ? 7 : firstDay.getDay();
     for (let i = startDay - 1; i > 0; i--) {
-      const prevDate = new Date(year, month, 1 - i);
+      const prevDate = new Date(year, monthIndex, 1 - i);
       days.push({ date: prevDate, isCurrentMonth: false });
     }
     
-    // Dias do mês atual
     for (let i = 1; i <= lastDay.getDate(); i++) {
-      const currentDate = new Date(year, month, i);
+      const currentDate = new Date(year, monthIndex, i);
       days.push({ date: currentDate, isCurrentMonth: true });
     }
     
-    // Dias do próximo mês para completar a última semana
-    const endDay = lastDay.getDay() || 7; // Domingo é 0, convertemos para 7
-    for (let i = 1; i <= 7 - endDay; i++) {
-      const nextDate = new Date(year, month + 1, i);
+    const endDay = lastDay.getDay() === 0 ? 7 : lastDay.getDay();
+    const daysToAdd = (days.length <= 35) ? 42 - days.length : 7 - endDay;
+    for (let i = 1; i <= daysToAdd; i++) {
+      const nextDate = new Date(year, monthIndex + 1, i);
       days.push({ date: nextDate, isCurrentMonth: false });
     }
     
     setCalendarDays(days);
-  }, [currentMonth]);
+  }, [month]);
 
-  // Verifica se há plantões na data
   const getPlantoesNaData = (date: Date) => {
     return plantoes.filter(plantao => isSameDay(new Date(plantao.data), date));
   };
 
-  // Obtém as cores dos locais dos plantões
   const getCoresPlantoes = (plantoesNaData: Plantao[]) => {
     return plantoesNaData.map(plantao => {
       const local = locais.find(l => l.id === plantao.local);
@@ -68,26 +69,20 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
 
   return (
     <div className="calendar-container overflow-hidden">
-      {/* Cabeçalho do calendário com estilo roxo */}
       <div className="bg-purple rounded-t-2xl p-4 text-white">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-3xl font-bold">
-            {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+            {format(month, 'MMMM yyyy', { locale: ptBR })}
           </h2>
-          {/* Botão removido conforme solicitado */}
-          {/* <button className="p-1 rounded-full hover:bg-purple-dark transition">
-            <MoreVertical size={20} />
-          </button> */}
         </div>
         
-        {/* Meses com swipe */}
         <div className="relative">
           <Swiper
             onSlideChange={(swiper) => {
               const newMonth = swiper.activeIndex > swiper.previousIndex
-                ? addMonths(currentMonth, 1)
-                : subMonths(currentMonth, 1);
-              setCurrentMonth(newMonth);
+                ? addMonths(month, 1)
+                : subMonths(month, 1);
+              onMonthChange(newMonth);
             }}
             initialSlide={2}
             slidesPerView={3.5}
@@ -97,48 +92,46 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
           >
             <SwiperSlide>
               <button 
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 2))}
+                onClick={() => onMonthChange(subMonths(month, 2))}
                 className="text-white/70 text-center w-full py-2 font-light"
               >
-                {format(subMonths(currentMonth, 2), 'MMMM', { locale: ptBR })}
+                {format(subMonths(month, 2), 'MMMM', { locale: ptBR })}
               </button>
             </SwiperSlide>
             <SwiperSlide>
               <button 
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                onClick={() => onMonthChange(subMonths(month, 1))}
                 className="text-white/70 text-center w-full py-2 font-light"
               >
-                {format(subMonths(currentMonth, 1), 'MMMM', { locale: ptBR })}
+                {format(subMonths(month, 1), 'MMMM', { locale: ptBR })}
               </button>
             </SwiperSlide>
             <SwiperSlide>
               <div className="text-white text-center w-full py-2 font-medium text-xl">
-                {format(currentMonth, 'MMMM', { locale: ptBR })}
+                {format(month, 'MMMM', { locale: ptBR })}
               </div>
             </SwiperSlide>
             <SwiperSlide>
               <button 
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                onClick={() => onMonthChange(addMonths(month, 1))}
                 className="text-white/70 text-center w-full py-2 font-light"
               >
-                {format(addMonths(currentMonth, 1), 'MMMM', { locale: ptBR })}
+                {format(addMonths(month, 1), 'MMMM', { locale: ptBR })}
               </button>
             </SwiperSlide>
             <SwiperSlide>
               <button 
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 2))}
+                onClick={() => onMonthChange(addMonths(month, 2))}
                 className="text-white/70 text-center w-full py-2 font-light"
               >
-                {format(addMonths(currentMonth, 2), 'MMMM', { locale: ptBR })}
+                {format(addMonths(month, 2), 'MMMM', { locale: ptBR })}
               </button>
             </SwiperSlide>
           </Swiper>
         </div>
       </div>
       
-      {/* Calendário com fundo branco */}
       <div className="bg-white rounded-b-2xl p-4 shadow-lg">
-        {/* Dias da semana */}
         <div className="grid grid-cols-7 mb-2">
           {['d', 's', 't', 'q', 'q', 's', 's'].map((day, index) => (
             <div key={index} className="text-center text-xs text-indigo-300 font-normal">
@@ -147,7 +140,6 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
           ))}
         </div>
         
-        {/* Dias do mês */}
         <div className="grid grid-cols-7 gap-1">
           {calendarDays.map((dayInfo, index) => {
             const isToday = isSameDay(dayInfo.date, new Date());
@@ -165,7 +157,6 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
                   ${isToday && !isSelected ? 'bg-gray-100 font-medium' : ''}
                 `}
                 onClick={() => {
-                  // Se a data já está selecionada, desmarcar
                   if (date && isSameDay(dayInfo.date, date)) {
                     onDateChange(null);
                   } else {
@@ -176,7 +167,6 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
               >
                 <span>{dayInfo.date.getDate()}</span>
                 
-                {/* Bolinhas indicadoras de plantões */}
                 {plantoesNaData.length > 0 && (
                   <div className="absolute -bottom-1 flex gap-[2px] justify-center">
                     {cores.slice(0, 3).map((cor, i) => (

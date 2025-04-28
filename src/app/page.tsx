@@ -79,16 +79,32 @@ export default function Home() {
   const plantoesDoMesInteiro = useMemo(() => {
      // Para meses passados/futuros, mostra todos do mês
      if (isPastMonthView || isFutureMonthView) {
-        // Usar a função do contexto para obter plantões do mês correto
-        return obterPlantoesPorMes(mesAtualFmt, anoAtualFmt)
+        // Filtrar diretamente pelo ano e mês usando o objeto Date
+        return plantoes
+          .filter(p => {
+            // Verificar se p.data é um objeto Date válido
+            if (!(p.data instanceof Date) || isNaN(p.data.getTime())) {
+                console.warn("[plantoesDoMesInteiro] Skipping plantao due to invalid Date object:", p);
+                return false;
+            }
+            
+            const plantaoYear = p.data.getFullYear();
+            const plantaoMonth = p.data.getMonth(); // JS months are 0-indexed
+
+            // Compare with the viewed month/year
+            return plantaoYear === anoAtualFmt && plantaoMonth === mesAtualFmt;
+          })
           .sort((a, b) => {
-            const dataA = new Date(a.data);
-            const dataB = new Date(b.data);
+            // Sorting logic remains the same
+            const dataA = a.data; // Already Date objects
+            const dataB = b.data;
+            // Add checks for invalid dates before getTime
+            if (isNaN(dataA.getTime()) || isNaN(dataB.getTime())) return 0; 
             return dataA.getTime() - dataB.getTime() || parseInt(a.horaInicio.replace(":", ""), 10) - parseInt(b.horaInicio.replace(":", ""), 10);
           });
      }
      return []; // Não calcula para mês atual aqui
-  }, [plantoes, mesAtualFmt, anoAtualFmt, isPastMonthView, isFutureMonthView, obterPlantoesPorMes]);
+  }, [plantoes, mesAtualFmt, anoAtualFmt, isPastMonthView, isFutureMonthView]);
 
   // Plantões passados NO MÊS ATUAL (até ontem, relativo a hoje ou data selecionada)
   const plantoesPassadosNoMesAtual = useMemo(() => {
@@ -139,7 +155,6 @@ export default function Home() {
         return dataA.getTime() - dataB.getTime() || parseInt(a.horaInicio.replace(":", ""), 10) - parseInt(b.horaInicio.replace(":", ""), 10);
       });
   }, [plantoes, currentMonth, hoje, isCurrentMonthView, date]);
-
 
   // --- Handlers ---
   const abrirModalAdicionar = () => {
@@ -206,7 +221,21 @@ export default function Home() {
       <div className="bg-white shadow-sm mb-4 pb-2 sticky top-0 z-10">
           <CustomCalendar
             date={date}
-            onDateChange={setDate}
+            onDateChange={(newDate: Date | null) => { 
+                // If clicking the same date, deselect it
+                if (date && newDate && isSameDay(newDate, date)) {
+                  setDate(null);
+                } else {
+                  // Set to new date or null (already handles null correctly)
+                  setDate(newDate); 
+                  // If a date is selected, update the viewed month to match it
+                  if (newDate) {
+                    setCurrentMonth(startOfMonth(newDate));
+                  }
+                }
+            }}
+            month={currentMonth} 
+            onMonthChange={setCurrentMonth} 
             plantoes={plantoes}
             locais={locais}
           />
@@ -214,70 +243,81 @@ export default function Home() {
 
       {/* --- Lógica de Exibição dos Plantões --- */}
       <div className="pb-6">
-        {/* Cenário 1: Mês Passado */}
-        {isPastMonthView && (
+        {/* Cenário 1 & 2: Mês Passado ou Futuro - Usa a lista pré-filtrada */}        
+        {(isPastMonthView || isFutureMonthView) && (
           renderPlantaoList(
-            plantoesDoMesInteiro,
-            `Plantões realizados em ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}`,
-            "Nenhum plantão realizado neste mês."
+            plantoesDoMesInteiro, 
+            `Plantões em ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}`,
+            "Nenhum plantão encontrado neste mês."
           )
         )}
 
-        {/* Cenário 2: Mês Futuro */}
-        {isFutureMonthView && (
-          renderPlantaoList(
-            plantoesDoMesInteiro,
-            `Plantões agendados para ${format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}`,
-            "Nenhum plantão agendado para este mês."
-          )
-        )}
-
-        {/* Cenário 3: Mês Atual */}
+        {/* Cenário 3: Mês Atual */}        
         {isCurrentMonthView && (
           <>
-            {/* 3a: Mês Atual - Nenhuma data selecionada */}
-            {!date && (
+            {/* Subcenário 3.1: Data específica selecionada */}
+            {date && !isTodaySelected && (
+                renderPlantaoList(
+                    plantoesDoDiaSelecionado,
+                    `Plantões em ${format(date, "dd 'de' MMMM", { locale: ptBR })}`,
+                    "Nenhum plantão neste dia."
+                )
+            )}
+
+            {/* Subcenário 3.2: Nenhuma data selecionada (ou hoje selecionado) - mostra Hoje, Futuros, Passados */}
+            {(!date || isTodaySelected) && (
               <>
-                {/* Adicionar plantões de hoje quando nenhuma data estiver selecionada */}
                 {renderPlantaoList(
-                  plantoes.filter(p => isSameDay(new Date(p.data), hoje))
-                    .sort((a, b) => parseInt(a.horaInicio.replace(":", ""), 10) - parseInt(b.horaInicio.replace(":", ""), 10)),
-                  "Plantões de hoje",
+                  // Se 'date' for null (nenhuma seleção), busca plantões de HOJE
+                  // Se 'date' for o dia de hoje, usa plantoesDoDiaSelecionado
+                  plantoesDoDiaSelecionado, 
+                  isTodaySelected ? `Plantões de Hoje (${format(hoje, "dd/MM")})` : `Plantões de Hoje (${format(hoje, "dd/MM")})`, 
                   "Nenhum plantão hoje."
                 )}
-                {renderPlantaoList(plantoesFuturosNoMesAtual, "Próximos plantões", "Nenhum próximo plantão neste mês.")}
-                {renderPlantaoList(plantoesPassadosNoMesAtual, "Plantões passados", "Nenhum plantão passado neste mês.")}
-                {plantoesFuturosNoMesAtual.length === 0 && 
-                 plantoesPassadosNoMesAtual.length === 0 && 
-                 plantoes.filter(p => isSameDay(new Date(p.data), hoje)).length === 0 && (
-                    <p className="text-muted-foreground text-sm text-center py-3 px-4">Nenhum plantão neste mês.</p>
-                 )}
-              </>
-            )}
-
-            {/* 3b: Mês Atual - Data de HOJE selecionada */}
-            {date && isTodaySelected && (
-              <>
-                {renderPlantaoList(plantoesDoDiaSelecionado, "Plantões de hoje", "Nenhum plantão hoje.")}
-                {plantoesFuturosNoMesAtual.length > 0 && renderPlantaoList(plantoesFuturosNoMesAtual, "Próximos plantões", "")}
-              </>
-            )}
-
-            {/* 3c: Mês Atual - Outra data (NÃO HOJE) selecionada */}
-            {date && !isTodaySelected && (
-              <>
-                {renderPlantaoList(plantoesDoDiaSelecionado,
-                  `Plantões em ${format(date, "dd 'de' MMMM", { locale: ptBR })}`,
-                  `Nenhum plantão agendado para ${format(date, "dd/MM")}.`
+                {renderPlantaoList(
+                  plantoesFuturosNoMesAtual,
+                  "Próximos plantões no mês",
+                  ""
                 )}
-                 {isBefore(date, hoje) && plantoesPassadosNoMesAtual.length > 0 && renderPlantaoList(plantoesPassadosNoMesAtual, "Outros plantões passados", "")}
-                 {isAfter(date, hoje) && plantoesFuturosNoMesAtual.length > 0 && renderPlantaoList(plantoesFuturosNoMesAtual, "Outros plantões futuros", "")}
-                  {plantoesDoDiaSelecionado.length === 0 &&
-                   ((isBefore(date, hoje) && plantoesPassadosNoMesAtual.length === 0) ||
-                    (isAfter(date, hoje) && plantoesFuturosNoMesAtual.length === 0)) && (
-                      <p className="text-muted-foreground text-sm text-center py-3 px-4">Nenhum outro plantão relevante neste mês.</p>
-                  )}
+                {renderPlantaoList(
+                  plantoesPassadosNoMesAtual,
+                  "Plantões passados no mês",
+                  ""
+                )}
               </>
+            )}
+            
+            {/* Subcenário 3.3: Data passada selecionada (não hoje) - mostra Passados e Futuros */}
+            {date && !isTodaySelected && isBefore(date, hoje) && (
+                <>
+                    {renderPlantaoList(
+                        plantoesFuturosNoMesAtual,
+                        "Próximos plantões no mês (após data selecionada)",
+                        ""
+                    )}
+                    {renderPlantaoList(
+                        plantoesPassadosNoMesAtual,
+                        "Plantões passados no mês (antes da data selecionada)",
+                        ""
+                    )}
+                </>
+            )}
+
+            {/* Subcenário 3.4: Data futura selecionada - mostra Futuros e Passados */}
+            {date && !isTodaySelected && isAfter(date, hoje) && (
+                 <>
+                     {/* Já mostrado em 3.1 */} 
+                     {renderPlantaoList(
+                        plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)), // Exclui o dia já mostrado
+                        "Outros próximos plantões no mês",
+                        ""
+                     )}
+                     {renderPlantaoList(
+                         plantoesPassadosNoMesAtual,
+                         "Plantões passados no mês",
+                         ""
+                     )}
+                 </>
             )}
           </>
         )}
