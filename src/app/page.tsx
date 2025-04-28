@@ -97,7 +97,7 @@ function PlantaoCard({ plantao, onEdit, onDelete }: PlantaoCardProps) {
           <CardContent className="py-1 px-4 pl-6">
             <div className="flex justify-between items-start mb-0.5">
               <div>
-                <h3 className="font-medium text-purple-dark">{plantao.title}</h3>
+                <h3 className="font-medium text-black">{plantao.title}</h3>
                 <p className="text-xs text-muted-foreground">{localInfo?.nome || "Local não encontrado"}</p>
                 <p className="text-xs text-muted-foreground">{formattedDate}</p>
               </div>
