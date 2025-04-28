@@ -146,8 +146,9 @@ export default function Home() {
       {/* Removemos o header roxo/lilás para deixar apenas o calendário com topo roxo */}
 
       {/* Calendário centralizado */}
-      <div className="flex flex-col items-center mb-6 px-4">
-        <div className="w-full max-w-md mx-auto animate-in-fade overflow-hidden">
+      <div className="mb-6 px-4">
+        <h1 className="text-2xl font-semibold mb-3 text-center">Plantões</h1>
+        <div className="w-full mx-auto animate-in-fade overflow-hidden">
           <CustomCalendar 
             date={date} 
             onDateChange={(newDate) => setDate(newDate)} 
@@ -158,7 +159,7 @@ export default function Home() {
       </div>
 
       {/* Lista de plantões */}
-      <div className="mt-6">
+      <div className="mt-6 px-4">
         {date ? (
           <>
             <h2 className="text-lg font-medium mb-3">

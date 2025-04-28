@@ -67,7 +67,7 @@ export default function PagamentosPage() {
   };
   
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 px-4">
       <h1 className="text-2xl font-bold tracking-tight">Pagamentos</h1>
       
       {/* Cards de resumo */}

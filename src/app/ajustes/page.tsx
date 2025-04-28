@@ -119,7 +119,7 @@ export default function AjustesPage() {
     }
   };
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
       <h1 className="text-2xl font-bold tracking-tight">Ajustes</h1>
 
       <Tabs defaultValue="geral" className="w-full">

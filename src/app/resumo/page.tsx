@@ -142,7 +142,7 @@ export default function ResumoPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 px-4">
       <h1 className="text-2xl font-bold tracking-tight">Resumo Financeiro</h1>
 
       <div className="flex justify-between items-center mb-4">

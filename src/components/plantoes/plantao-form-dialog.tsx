@@ -29,7 +29,6 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   const editando = !!plantaoParaEditar;
 
   // Estado do formulário
-  const [titulo, setTitulo] = useState(plantaoParaEditar?.title || "");
   const [localId, setLocalId] = useState(plantaoParaEditar?.local || "");
   const [data, setData] = useState<Date>(plantaoParaEditar?.data || new Date());
   const [horaInicio, setHoraInicio] = useState(plantaoParaEditar?.horaInicio || "07:00");
@@ -37,13 +36,13 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   const [valor, setValor] = useState(plantaoParaEditar?.valor?.toString() || "");
   const [pago, setPago] = useState(plantaoParaEditar?.pago || false);
   const [observacoes, setObservacoes] = useState(plantaoParaEditar?.observacoes || "");
+  const [repetir, setRepetir] = useState("nao"); // Novo estado para repetição
 
   // Estado de validação
   const [erros, setErros] = useState<Record<string, string>>({});
 
   // Resetar formulário
   const resetarFormulario = () => {
-    setTitulo("");
     setLocalId("");
     setData(new Date());
     setHoraInicio("07:00");
@@ -51,6 +50,7 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     setValor("");
     setPago(false);
     setObservacoes("");
+    setRepetir("nao");
     setErros({});
   };
 
@@ -63,10 +63,6 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   // Validar formulário
   const validarFormulario = (): boolean => {
     const novosErros: Record<string, string> = {};
-
-    if (!titulo.trim()) {
-      novosErros.titulo = "O título é obrigatório";
-    }
 
     if (!localId) {
       novosErros.localId = "Selecione um local";
@@ -84,7 +80,7 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
       novosErros.horaFim = "Informe a hora de término";
     }
 
-    if (!valor || isNaN(Number(valor)) || Number(valor) <= 0) {
+    if (valor && (isNaN(Number(valor)) || Number(valor) < 0)) {
       novosErros.valor = "Informe um valor válido";
     }
 
@@ -99,12 +95,12 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     }
 
     const plantaoData = {
-      title: titulo,
+      title: locais.find(l => l.id === localId)?.nome || "Plantão", // Usar nome do local como título
       local: localId,
       data,
       horaInicio,
       horaFim,
-      valor: Number(valor),
+      valor: valor ? Number(valor) : 0, // Valor opcional
       pago,
       observacoes: observacoes.trim() || undefined,
     };
@@ -112,7 +108,38 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     if (editando && plantaoParaEditar) {
       atualizarPlantao(plantaoParaEditar.id, plantaoData);
     } else {
-      adicionarPlantao(plantaoData);
+      // Adicionar plantão único ou repetido
+      if (repetir === "nao") {
+        adicionarPlantao(plantaoData);
+      } else {
+        // Implementar lógica de repetição baseada na opção selecionada
+        const repeticoes = {
+          "semanal": 4,  // 4 semanas
+          "quinzenal": 2, // 2 repetições (30 dias)
+          "mensal": 3,   // 3 meses
+        }[repetir] || 1;
+        
+        // Adicionar o plantão original
+        adicionarPlantao(plantaoData);
+        
+        // Adicionar as repetições
+        for (let i = 1; i <= repeticoes; i++) {
+          const novaData = new Date(data);
+          
+          if (repetir === "semanal") {
+            novaData.setDate(novaData.getDate() + (7 * i)); // Adicionar semanas
+          } else if (repetir === "quinzenal") {
+            novaData.setDate(novaData.getDate() + (15 * i)); // Adicionar 15 dias
+          } else if (repetir === "mensal") {
+            novaData.setMonth(novaData.getMonth() + i); // Adicionar meses
+          }
+          
+          adicionarPlantao({
+            ...plantaoData,
+            data: novaData
+          });
+        }
+      }
     }
 
     handleClose();
@@ -131,20 +158,6 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Título */}
-          <div className="grid gap-2">
-            <Label htmlFor="titulo" className={erros.titulo ? "text-destructive" : ""}>
-              Título
-            </Label>
-            <Input
-              id="titulo"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              className={erros.titulo ? "border-destructive" : ""}
-            />
-            {erros.titulo && <p className="text-xs text-destructive">{erros.titulo}</p>}
-          </div>
-
           {/* Local */}
           <div className="grid gap-2">
             <Label htmlFor="local" className={erros.localId ? "text-destructive" : ""}>
@@ -225,10 +238,10 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
             </div>
           </div>
 
-          {/* Valor */}
+          {/* Valor (opcional) */}
           <div className="grid gap-2">
             <Label htmlFor="valor" className={erros.valor ? "text-destructive" : ""}>
-              Valor (R$)
+              Valor (R$) - Opcional
             </Label>
             <Input
               id="valor"
@@ -238,9 +251,28 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
               value={valor}
               onChange={(e) => setValor(e.target.value)}
               className={erros.valor ? "border-destructive" : ""}
+              placeholder="Deixe em branco se não souber"
             />
             {erros.valor && <p className="text-xs text-destructive">{erros.valor}</p>}
           </div>
+
+          {/* Repetir plantão */}
+          {!editando && (
+            <div className="grid gap-2">
+              <Label htmlFor="repetir">Repetir plantão</Label>
+              <Select value={repetir} onValueChange={setRepetir}>
+                <SelectTrigger id="repetir">
+                  <SelectValue placeholder="Selecione uma opção" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nao">Não repetir</SelectItem>
+                  <SelectItem value="semanal">Semanalmente (4 semanas)</SelectItem>
+                  <SelectItem value="quinzenal">Quinzenalmente (30 dias)</SelectItem>
+                  <SelectItem value="mensal">Mensalmente (3 meses)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Status de pagamento */}
           <div className="flex items-center justify-between">

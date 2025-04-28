@@ -74,9 +74,10 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
           <h2 className="text-2xl font-light">
             {format(currentMonth, 'yyyy', { locale: ptBR })}
           </h2>
-          <button className="p-1 rounded-full hover:bg-purple-dark transition">
+          {/* Botão removido conforme solicitado */}
+          {/* <button className="p-1 rounded-full hover:bg-purple-dark transition">
             <MoreVertical size={20} />
-          </button>
+          </button> */}
         </div>
         
         {/* Meses com swipe */}
@@ -111,7 +112,7 @@ export function CustomCalendar({ date, onDateChange, plantoes, locais }: CustomC
               </button>
             </SwiperSlide>
             <SwiperSlide>
-              <div className="text-white text-center w-full py-2 font-medium">
+              <div className="text-white text-center w-full py-2 font-medium text-lg">
                 {format(currentMonth, 'MMMM', { locale: ptBR })}
               </div>
             </SwiperSlide>

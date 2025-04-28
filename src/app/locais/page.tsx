@@ -80,7 +80,7 @@ export default function LocaisPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Locais de Plantão</h1>
         <Button 
