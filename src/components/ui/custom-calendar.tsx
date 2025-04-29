@@ -27,7 +27,10 @@ export function CustomCalendar({
 }: CustomCalendarProps) {
   const [calendarDays, setCalendarDays] = useState<Array<{ date: Date; isCurrentMonth: boolean }>>([]);
 
+  // Efeito para gerar os dias do calendário quando o mês muda
   useEffect(() => {
+    console.log("Gerando dias do calendário para o mês:", format(month, 'MMMM yyyy', { locale: ptBR }));
+    
     const days = [];
     const year = month.getFullYear();
     const monthIndex = month.getMonth();
@@ -35,6 +38,7 @@ export function CustomCalendar({
     const firstDay = new Date(year, monthIndex, 1);
     const lastDay = new Date(year, monthIndex + 1, 0);
     
+    // Ajuste para começar a semana no domingo (0) ou segunda (1)
     const startDay = firstDay.getDay() === 0 ? 7 : firstDay.getDay();
     for (let i = startDay - 1; i > 0; i--) {
       const prevDate = new Date(year, monthIndex, 1 - i);

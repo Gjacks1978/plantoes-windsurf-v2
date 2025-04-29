@@ -37,8 +37,8 @@ export default function Home() {
     marcarComoPago
   } = usePlantoes();
   const { locais } = useLocais();
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
-  const [date, setDate] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date())); // Inicializa com o início do mês atual
+  const [date, setDate] = useState<Date | null>(new Date()); // Inicializa com a data atual
   const [modalAberto, setModalAberto] = useState(false);
   const [plantaoParaEditar, setPlantaoParaEditar] = useState<any | undefined>(undefined);
 
@@ -219,8 +219,41 @@ export default function Home() {
     );
   };
 
+  // Função para limpar o localStorage e reiniciar o aplicativo
+  const limparDados = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Listar todas as chaves no localStorage antes de limpar
+        console.log("Chaves no localStorage antes de limpar:");
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          console.log(`- ${key}`);
+        }
+        
+        // Limpar o localStorage
+        localStorage.clear();
+        console.log("localStorage limpo com sucesso!");
+        
+        // Recarregar a página
+        window.location.reload();
+      } catch (error) {
+        console.error("Erro ao limpar localStorage:", error);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f6fa] pb-36">
+      {/* Botão temporário para debug */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button 
+          variant="destructive" 
+          size="sm"
+          onClick={limparDados}
+        >
+          Limpar Dados
+        </Button>
+      </div>
       {/* Título */}
       <div className="w-full max-w-2xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-black mb-4 mt-6">Meus Plantões</h1>

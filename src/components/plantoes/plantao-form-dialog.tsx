@@ -118,19 +118,26 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
       return;
     }
 
+    // Garantir que a data seja um objeto Date válido
+    const dataValida = data instanceof Date && !isNaN(data.getTime()) ? data : new Date();
+    
     const plantaoData = {
       title: locais.find(l => l.id === localId)?.nome || "Plantão", // Usar nome do local como título
-      local: localId,
-      data,
+      local: localId, // Usando 'local' para compatibilidade com PlantoesContext
+      data: dataValida,
       horaInicio,
       horaFim,
       valor: valor ? Number(valor) : 0, // Valor opcional
       pago,
       observacoes: observacoes.trim() || undefined,
     };
+    
+    console.log("Dados do plantão a serem salvos:", plantaoData);
 
-    if (editando && plantaoParaEditar) {
+
+    if (editando && plantaoParaEditar && plantaoParaEditar.id) {
       // Atualizar o plantão original
+      console.log("Atualizando plantão com ID:", plantaoParaEditar.id);
       atualizarPlantao(plantaoParaEditar.id, plantaoData);
       
       // Se o usuário escolheu repetir, cria novos plantões a partir deste
