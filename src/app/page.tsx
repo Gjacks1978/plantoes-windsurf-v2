@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 interface Plantao {
   id: string;
-  titulo?: string;
+  title: string;
   local: string;
   data: Date;
   horaInicio: string;
@@ -159,7 +159,15 @@ export default function Home() {
   // --- Handlers ---
   const abrirModalAdicionar = () => {
     if (date) {
-      setPlantaoParaEditar({ data: date });
+      setPlantaoParaEditar({
+        data: date,
+        local: '',
+        horaInicio: '07:00',
+        horaFim: '19:00',
+        valor: 0,
+        pago: false,
+        observacoes: ''
+      });
     } else {
       setPlantaoParaEditar(undefined);
     }
