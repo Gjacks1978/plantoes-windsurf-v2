@@ -104,29 +104,32 @@ export default function PagamentosPage() {
   
   return (
     <div className="pb-8">
-      {/* Cabeçalho com navegação por mês */}
+      {/* Cabeçalho */}
       <div className="bg-purple text-white py-4 px-4 mb-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold tracking-tight">Pagamentos</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-purple-dark" onClick={irParaMesAnterior}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span className="text-lg font-medium">
-              {format(mesSelecionado, 'MMMM yyyy', { locale: ptBR })}
-            </span>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-purple-dark" onClick={irParaProximoMes}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
       </div>
       
       <div className="space-y-6 px-4">
         {/* Card de resumo com barra de progresso */}
         <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="py-5">
-            <div className="flex flex-col gap-4">
+          <CardContent className="py-3">
+            <div className="flex flex-col gap-2">
+              {/* Slider de navegação por mês */}
+              <div className="flex justify-center items-center gap-1 mb-0">
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-black hover:bg-gray-100" onClick={irParaMesAnterior}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-base font-medium text-black px-1">
+                  {format(mesSelecionado, 'MMMM yyyy', { locale: ptBR })}
+                </span>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-black hover:bg-gray-100" onClick={irParaProximoMes}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Valor total */}
               <div className="flex justify-center">
                 <div className="text-2xl font-bold">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totais.valorTotal)}

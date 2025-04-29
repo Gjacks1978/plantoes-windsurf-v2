@@ -155,21 +155,10 @@ export default function ResumoPage() {
   
   return (
     <div className="pb-8">
-      {/* Cabeçalho com navegação por mês */}
+      {/* Cabeçalho */}
       <div className="bg-purple text-white py-4 px-4 mb-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold tracking-tight">Resumo</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-purple-dark" onClick={irParaMesAnterior}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span className="text-lg font-medium">
-              {format(new Date(anoSelecionado, mesSelecionado, 1), 'MMMM yyyy', { locale: ptBR })}
-            </span>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-purple-dark" onClick={irParaProximoMes}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
       </div>
       
@@ -221,22 +210,21 @@ export default function ResumoPage() {
       
         {/* Card de resumo consolidado */}
         <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="py-5">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-purple/10 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple">
-                    <path d="M12 8v4l3 3"/>
-                    <circle cx="12" cy="12" r="10"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">{format(new Date(anoSelecionado, mesSelecionado, 1), 'MMMM yyyy', { locale: ptBR })}</h3>
-                  <p className="text-xs text-muted-foreground">Resumo do mês selecionado</p>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap justify-center sm:justify-end gap-6 sm:gap-8 w-full sm:w-auto">
+          <CardContent className="py-3">
+            {/* Slider de navegação por mês */}
+            <div className="flex justify-center items-center gap-1 mb-2">
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-black hover:bg-gray-100" onClick={irParaMesAnterior}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-base font-medium text-black px-1">
+                {format(new Date(anoSelecionado, mesSelecionado, 1), 'MMMM yyyy', { locale: ptBR })}
+              </span>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-black hover:bg-gray-100" onClick={irParaProximoMes}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-8 w-full py-2">
                 <div className="flex flex-col items-center sm:items-start">
                   <div className="flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple">
@@ -280,7 +268,6 @@ export default function ResumoPage() {
                     <span className="text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dadosMesSelecionado.valorPago)}</span> pagos
                   </p>
                 </div>
-              </div>
             </div>
           </CardContent>
         </Card>
