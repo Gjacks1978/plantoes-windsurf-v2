@@ -29,12 +29,24 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   const editando = !!plantaoParaEditar;
 
   // Estado do formulário
-  const [localId, setLocalId] = useState(plantaoParaEditar?.local || "");
+  const [localId, setLocalId] = useState("");
+
+  // Sincronizar localId com a lista de locais e plantaoParaEditar
+  useEffect(() => {
+    if (plantaoParaEditar && plantaoParaEditar.local) {
+      setLocalId(plantaoParaEditar.local);
+    } else if (locais.length > 0) {
+      setLocalId(locais[0].id);
+    } else {
+      setLocalId("");
+    }
+  }, [isOpen, plantaoParaEditar, locais]);
+
   const [data, setData] = useState<Date>(plantaoParaEditar?.data || new Date());
   const [horaInicio, setHoraInicio] = useState(plantaoParaEditar?.horaInicio || "07:00");
   const [horaFim, setHoraFim] = useState(plantaoParaEditar?.horaFim || "19:00");
-  const [valor, setValor] = useState(plantaoParaEditar?.valor?.toString() || "");
-  const [pago, setPago] = useState(plantaoParaEditar?.pago || false);
+  const [valor, setValor] = useState(plantaoParaEditar?.valor !== undefined ? plantaoParaEditar.valor.toString() : "0");
+  const [pago, setPago] = useState(plantaoParaEditar?.pago !== undefined ? plantaoParaEditar.pago : false);
   const [observacoes, setObservacoes] = useState(plantaoParaEditar?.observacoes || "");
   const [repetir, setRepetir] = useState("nao"); // Novo estado para repetição
   const [diasSemana, setDiasSemana] = useState<string[]>([]); // Estado para dias da semana selecionados
@@ -42,24 +54,28 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   // Atualiza os campos ao abrir para edição
   useEffect(() => {
     if (plantaoParaEditar) {
-      setLocalId(plantaoParaEditar.local || "");
-      setData(plantaoParaEditar.data || new Date());
-      setHoraInicio(plantaoParaEditar.horaInicio || "07:00");
-      setHoraFim(plantaoParaEditar.horaFim || "19:00");
-      setValor(plantaoParaEditar.valor?.toString() || "");
-      setPago(plantaoParaEditar.pago || false);
-      setObservacoes(plantaoParaEditar.observacoes || "");
+      setLocalId(plantaoParaEditar.local ?? (locais.length === 1 ? locais[0].id : ""));
+      setData(plantaoParaEditar.data ?? new Date());
+      setHoraInicio(plantaoParaEditar.horaInicio ?? "07:00");
+      setHoraFim(plantaoParaEditar.horaFim ?? "19:00");
+      setValor(
+        plantaoParaEditar.valor !== undefined && plantaoParaEditar.valor !== null
+          ? plantaoParaEditar.valor.toString()
+          : "0"
+      );
+      setPago(plantaoParaEditar.pago === true);
+      setObservacoes(plantaoParaEditar.observacoes ?? "");
       // ... outros campos se houver
     } else {
-      setLocalId("");
+      setLocalId(locais.length === 1 ? locais[0].id : "");
       setData(new Date());
       setHoraInicio("07:00");
       setHoraFim("19:00");
-      setValor("");
+      setValor("0");
       setPago(false);
       setObservacoes("");
     }
-  }, [plantaoParaEditar, isOpen]);
+  }, [plantaoParaEditar, isOpen, locais]);
 
   // Estado de validação
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -115,10 +131,24 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   // Salvar plantão
   const handleSalvar = () => {
     if (!validarFormulario()) {
+      window?.toast?.error?.("Preencha todos os campos obrigatórios.");
+      console.error('[handleSalvar] Formulário inválido', { localId, data, horaInicio, horaFim, valor });
       return;
     }
 
     const plantaoData = {
+      // log para depuração
+      // eslint-disable-next-line no-console
+      ...(console.log('[handleSalvar] plantaoData', {
+        title: locais.find(l => l.id === localId)?.nome || "Plantão",
+        local: localId,
+        data,
+        horaInicio,
+        horaFim,
+        valor: valor ? Number(valor) : 0,
+        pago,
+        observacoes: observacoes.trim() || undefined,
+      }) || {}),
       title: locais.find(l => l.id === localId)?.nome || "Plantão", // Usar nome do local como título
       local: localId,
       data,
@@ -199,7 +229,9 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     } else {
       // Adicionar plantão único ou repetido
       if (repetir === "nao") {
+        console.log('[handleSalvar] Chamando adicionarPlantao', plantaoData);
         adicionarPlantao(plantaoData);
+        console.log('[handleSalvar] Após adicionarPlantao');
       } else if (repetir === "dias-semana") {
         // Repetir nos dias da semana selecionados por 4 semanas
         if (diasSemana.length > 0) {
@@ -275,6 +307,7 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     handleClose();
   };
 
+  console.log('[PlantaoFormDialog] locais:', locais, 'localId:', localId);
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px]">
@@ -288,85 +321,86 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Local */}
-          <div className="grid gap-2">
-            <Label htmlFor="local" className={erros.localId ? "text-destructive" : ""}>
-              Local
-            </Label>
-            <Select value={localId} onValueChange={setLocalId}>
-              <SelectTrigger className={erros.localId ? "border-destructive" : ""}>
-                <SelectValue placeholder="Selecione um local" />
-              </SelectTrigger>
-              <SelectContent>
-                {locais.map((local) => (
-                  <SelectItem key={local.id} value={local.id}>
-                    {local.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {erros.localId && <p className="text-xs text-destructive">{erros.localId}</p>}
-          </div>
+  {/* Local */}
+  <div className="grid gap-2">
+    <Label htmlFor="local" className={erros.localId ? "text-destructive" : ""}>
+      Local
+    </Label>
+    <Select id="local" value={localId} onValueChange={setLocalId}>
+      <SelectTrigger className={erros.localId ? "border-destructive" : ""}>
+        <SelectValue placeholder="Selecione um local" />
+      </SelectTrigger>
+      <SelectContent>
+        {locais.map((local) => (
+          <SelectItem key={local.id} value={local.id}>
+            {local.nome}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+    {erros.localId && <p className="text-xs text-destructive">{erros.localId}</p>}
+  </div>
 
-          {/* Data */}
-          <div className="grid gap-2">
-            <Label className={erros.data ? "text-destructive" : ""}>Data</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !data && "text-muted-foreground",
-                    erros.data && "border-destructive"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {data ? format(data, "PPP", { locale: ptBR }) : "Selecione uma data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={data}
-                  onSelect={(date) => date && setData(date)}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-            {erros.data && <p className="text-xs text-destructive">{erros.data}</p>}
-          </div>
+  {/* Data */}
+  <div className="grid gap-2">
+    <Label className={erros.data ? "text-destructive" : ""}>Data</Label>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "justify-start text-left font-normal",
+            !data && "text-muted-foreground",
+            erros.data && "border-destructive"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {data ? format(data, "PPP", { locale: ptBR }) : "Selecione uma data"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={data}
+          onSelect={(date) => date && setData(date)}
+          initialFocus
+          locale={ptBR}
+        />
+      </PopoverContent>
+    </Popover>
+    {erros.data && <p className="text-xs text-destructive">{erros.data}</p>}
+  </div>
 
-          {/* Horários */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="horaInicio" className={erros.horaInicio ? "text-destructive" : ""}>
-                Início
-              </Label>
-              <Input
-                id="horaInicio"
-                type="time"
-                value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
-                className={erros.horaInicio ? "border-destructive" : ""}
-              />
-              {erros.horaInicio && <p className="text-xs text-destructive">{erros.horaInicio}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="horaFim" className={erros.horaFim ? "text-destructive" : ""}>
-                Término
-              </Label>
-              <Input
-                id="horaFim"
-                type="time"
-                value={horaFim}
-                onChange={(e) => setHoraFim(e.target.value)}
-                className={erros.horaFim ? "border-destructive" : ""}
-              />
-              {erros.horaFim && <p className="text-xs text-destructive">{erros.horaFim}</p>}
-            </div>
-          </div>
+  {/* Horários */}
+  <div className="grid grid-cols-2 gap-4">
+    <div className="grid gap-2">
+      <Label htmlFor="horaInicio" className={erros.horaInicio ? "text-destructive" : ""}>
+        Início
+      </Label>
+      <Input
+        id="horaInicio"
+        type="time"
+        value={horaInicio}
+        onChange={(e) => setHoraInicio(e.target.value)}
+        className={erros.horaInicio ? "border-destructive" : ""}
+      />
+      {erros.horaInicio && <p className="text-xs text-destructive">{erros.horaInicio}</p>}
+    </div>
+    <div className="grid gap-2">
+      <Label htmlFor="horaFim" className={erros.horaFim ? "text-destructive" : ""}>
+        Término
+      </Label>
+      <Input
+        id="horaFim"
+        type="time"
+        value={horaFim}
+        onChange={(e) => setHoraFim(e.target.value)}
+        className={erros.horaFim ? "border-destructive" : ""}
+      />
+      {erros.horaFim && <p className="text-xs text-destructive">{erros.horaFim}</p>}
+    </div>
+  </div>
+
 
           {/* Valor (opcional) */}
           <div className="grid gap-2">

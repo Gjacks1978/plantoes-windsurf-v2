@@ -108,7 +108,12 @@ export function PlantoesProvider({ children }: { children: ReactNode }) {
       ...plantao,
       id: uuidv4(),
     };
-    setPlantoes((prev) => [...prev, novoPlantao]);
+    console.log('[adicionarPlantao] Novo plantao:', novoPlantao);
+    setPlantoes((prev) => {
+      const atualizados = [...prev, novoPlantao];
+      console.log('[adicionarPlantao] Array atualizado:', atualizados);
+      return atualizados;
+    });
   };
 
   // Atualizar um plantão existente
