@@ -3,28 +3,15 @@
 import { useState, useMemo } from 'react';
 import { format, isSameDay, isSameMonth, isAfter, isBefore, startOfDay, startOfMonth, endOfMonth, getDate, addDays, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarIcon, CalendarCheck, CalendarX } from 'lucide-react';
 import { usePlantoes } from '@/contexts/PlantoesContext';
 import { useLocais } from '@/contexts/LocaisContext';
 import { CustomCalendar } from '@/components/ui/custom-calendar';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import PlantaoCard from '@/components/plantoes/plantao-card';
 import { PlantaoFormDialog } from '@/components/plantoes/plantao-form-dialog';
 import { toast } from 'sonner';
-
-interface Plantao {
-  id: string;
-  title: string;
-  local: string;
-  data: Date;
-  horaInicio: string;
-  horaFim: string;
-  valor?: number;
-  status?: string;
-  observacoes?: string;
-  pago?: boolean;
-  corPlantao?: string;
-}
+import { Plantao } from '@/types';
 
 export default function Home() {
   const {
@@ -38,9 +25,9 @@ export default function Home() {
   } = usePlantoes();
   const { locais } = useLocais();
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date())); // Inicializa com o início do mês atual
-  const [date, setDate] = useState<Date | null>(new Date()); // Inicializa com a data atual
-  const [modalAberto, setModalAberto] = useState(false);
-  const [plantaoParaEditar, setPlantaoParaEditar] = useState<any | undefined>(undefined);
+  const [date, setDate] = useState<Date | null>(new Date());  // Estado para controlar o modal de adicionar/editar plantão
+  const [isPlantaoFormOpen, setIsPlantaoFormOpen] = useState(false);
+  const [plantaoParaEditar, setPlantaoParaEditar] = useState<Plantao | undefined>(undefined);
 
   const hoje = useMemo(() => startOfDay(new Date()), []);
 
@@ -160,6 +147,8 @@ export default function Home() {
   const abrirModalAdicionar = () => {
     if (date) {
       setPlantaoParaEditar({
+        id: '',  // ID vazio, será gerado ao salvar
+        title: 'Novo Plantão',
         data: date,
         local: '',
         horaInicio: '07:00',
@@ -171,15 +160,15 @@ export default function Home() {
     } else {
       setPlantaoParaEditar(undefined);
     }
-    setModalAberto(true);
+    setIsPlantaoFormOpen(true);
   };
 
-  const abrirModalEditar = (plantao: Plantao) => {
+  const handleEditarPlantao = (plantao: Plantao) => {
     setPlantaoParaEditar(plantao);
-    setModalAberto(true);
+    setIsPlantaoFormOpen(true);
   };
 
-  const excluirPlantao = (id: string) => {
+  const handleExcluirPlantao = (id: string) => {
     try {
       removerPlantao(id);
       toast.success("Plantão removido com sucesso!");
@@ -199,12 +188,12 @@ export default function Home() {
   };
 
   const fecharModal = () => {
-    setModalAberto(false);
+    setIsPlantaoFormOpen(false);
     setPlantaoParaEditar(undefined);
   };
 
   // --- Funções de Renderização Auxiliares ---
-  const renderPlantaoList = (lista: Plantao[], titulo: string, mensagemVazia: string) => {
+  const renderPlantaoList = (lista: import("@/types").Plantao[], titulo: string, mensagemVazia: string) => {
     if (!lista || lista.length === 0) {
        return null;
     }
@@ -217,8 +206,8 @@ export default function Home() {
               key={plantao.id}
               plantao={plantao}
               local={locais.find(l => l.id === plantao.local)}
-              onEdit={() => abrirModalEditar(plantao)}
-              onDelete={() => excluirPlantao(plantao.id)}
+              onEdit={() => handleEditarPlantao(plantao)}
+              onDelete={() => handleExcluirPlantao(plantao.id)}
               onTogglePago={() => handleTogglePago(plantao.id)}
             />
           ))}
@@ -262,9 +251,32 @@ export default function Home() {
           Limpar Dados
         </Button>
       </div>
-      {/* Título */}
-      <div className="w-full max-w-2xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-black mb-4 mt-6">Meus Plantões</h1>
+      {/* Cabeçalho */}
+      <div className="w-full bg-purple-600 text-white py-4 px-4 mb-4">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold">Meus Plantões</h1>
+          <p className="text-purple-100 text-sm mt-1">Gerencie seus plantões médicos</p>
+        </div>
+      </div>
+      
+      {/* Resumo rápido */}
+      <div className="w-full max-w-2xl mx-auto px-4 mb-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+            <h3 className="text-sm font-medium text-gray-500">Plantões este mês</h3>
+            <p className="text-2xl font-bold text-gray-900 mt-1">
+              {plantoesDoMesInteiro.length}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+            <h3 className="text-sm font-medium text-gray-500">Valor total</h3>
+            <p className="text-2xl font-bold text-gray-900 mt-1">
+              {plantoesDoMesInteiro
+                .reduce((total, p) => total + p.valor, 0)
+                .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </p>
+          </div>
+        </div>
       </div>
 
 
@@ -347,15 +359,38 @@ export default function Home() {
             {/* Subcenário 3.3: Data passada selecionada (não hoje) - mostra Passados e Futuros */}
             {date && !isTodaySelected && isBefore(date, hoje) && (
                 <>
+                    <div className="w-full max-w-2xl mx-auto px-4 mb-20">
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <CalendarIcon className="w-5 h-5 mr-2 text-purple-600" />
+                          Plantões em {date.toLocaleDateString('pt-BR')}
+                        </h2>
+                        {plantoesFuturosNoMesAtual.length > 0 ? (
+                          <div className="space-y-3">
+                            {plantoesFuturosNoMesAtual.map((plantao) => (
+                              <PlantaoCard
+                                key={plantao.id}
+                                plantao={plantao}
+                                onDelete={() => handleExcluirPlantao(plantao.id)}
+                                onEdit={() => handleEditarPlantao(plantao)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 text-center py-6 bg-gray-50 rounded-lg">
+                            <CalendarX className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                            <p>Nenhum plantão encontrado nesta data.</p>
+                            <Button variant="outline" size="sm" className="mt-3" onClick={() => setIsPlantaoFormOpen(true)}>
+                              Adicionar plantão
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     {renderPlantaoList(
-                        plantoesFuturosNoMesAtual,
-                        "Próximos plantões no mês (após data selecionada)",
-                        ""
-                    )}
-                    {renderPlantaoList(
-                        plantoesPassadosNoMesAtual,
-                        "Plantões passados no mês (antes da data selecionada)",
-                        ""
+                      plantoesPassadosNoMesAtual,
+                      "Plantões passados no mês",
+                      ""
                     )}
                     {/* Se ambas as listas estiverem vazias, mostra mensagem */}
                     {plantoesFuturosNoMesAtual.length === 0 && plantoesPassadosNoMesAtual.length === 0 && (
@@ -367,15 +402,38 @@ export default function Home() {
             {/* Subcenário 3.4: Data futura selecionada - mostra Futuros e Passados */}
             {date && !isTodaySelected && isAfter(date, hoje) && (
                  <>
+                     <div className="w-full max-w-2xl mx-auto px-4 mb-20">
+                       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-4">
+                         <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                           <CalendarIcon className="w-5 h-5 mr-2 text-purple-600" />
+                           Plantões em {date.toLocaleDateString('pt-BR')}
+                         </h2>
+                         {plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)).length > 0 ? (
+                           <div className="space-y-3">
+                             {plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)).map((plantao) => (
+                               <PlantaoCard
+                                 key={plantao.id}
+                                 plantao={plantao}
+                                 onDelete={() => handleExcluirPlantao(plantao.id)}
+                                 onEdit={() => handleEditarPlantao(plantao)}
+                               />
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="text-gray-500 text-center py-6 bg-gray-50 rounded-lg">
+                             <CalendarX className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                             <p>Nenhum plantão encontrado nesta data.</p>
+                             <Button variant="outline" size="sm" className="mt-3" onClick={() => setIsPlantaoFormOpen(true)}>
+                               Adicionar plantão
+                             </Button>
+                           </div>
+                         )}
+                       </div>
+                     </div>
                      {renderPlantaoList(
-                        plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)),
-                        "Outros próximos plantões no mês",
-                        ""
-                     )}
-                     {renderPlantaoList(
-                         plantoesPassadosNoMesAtual,
-                         "Plantões passados no mês",
-                         ""
+                       plantoesPassadosNoMesAtual,
+                       "Plantões passados no mês",
+                       ""
                      )}
                      {/* Se ambas as listas estiverem vazias, mostra mensagem */}
                      {plantoesFuturosNoMesAtual.filter(p => !isSameDay(new Date(p.data), date)).length === 0 && plantoesPassadosNoMesAtual.length === 0 && (
@@ -388,20 +446,16 @@ export default function Home() {
       </div>
 
       {/* Botão Flutuante Redondo Fixo (igual Locais) */}
-      <div className="fixed bottom-32 right-6 z-30">
-        <Button
-          size="icon"
-          className="rounded-full h-16 w-16 bg-purple-600 hover:bg-purple-700 text-white shadow-lg flex items-center justify-center"
-          onClick={abrirModalAdicionar}
-          aria-label="Adicionar Plantão"
-        >
-          <Plus className="h-8 w-8" />
-        </Button>
-      </div>
+      <Button
+        className="fixed bottom-20 right-4 rounded-full w-14 h-14 shadow-lg"
+        onClick={abrirModalAdicionar}
+      >
+        <Plus className="h-8 w-8" />
+      </Button>
 
       {/* Modal de Adicionar/Editar Plantão */}
       <PlantaoFormDialog
-        isOpen={modalAberto}
+        isOpen={isPlantaoFormOpen}
         onClose={fecharModal}
         plantaoParaEditar={plantaoParaEditar}
       />

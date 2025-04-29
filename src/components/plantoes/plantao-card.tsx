@@ -8,13 +8,14 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2 } from 'lucide-react';
 import { useSwipeable } from 'react-swipeable';
+import { Plantao, Local } from '@/types';
 
 interface PlantaoCardProps {
-  plantao: any;
-  onEdit: (plantao: any) => void;
+  plantao: Plantao;
+  onEdit: (plantao: Plantao) => void;
   onDelete: (id: string) => void;
   onTogglePago?: (id: string) => void;
-  local?: any;
+  local?: Local;
 }
 
 export default function PlantaoCard({ plantao, onEdit, onDelete, onTogglePago, local }: PlantaoCardProps) {
@@ -23,8 +24,6 @@ export default function PlantaoCard({ plantao, onEdit, onDelete, onTogglePago, l
   
   // Formatar data do plantão
   const dataFormatada = format(new Date(plantao.data), "dd 'de' MMMM", { locale: ptBR });
-  
-  // Configuração do swipe
   const swipeHandlers = useSwipeable({
     onSwiping: (event) => {
       if (event.dir === "Left") {
@@ -83,7 +82,7 @@ export default function PlantaoCard({ plantao, onEdit, onDelete, onTogglePago, l
           <CardContent className="py-1 px-4 pl-6">
             <div className="flex justify-between items-start mb-0.5">
               <div>
-                <h3 className="font-medium text-black">{plantao.titulo || plantao.title || `Plantão em ${local?.nome || 'Local não especificado'}`}</h3>
+                <h3 className="font-medium text-black">{plantao.title || `Plantão em ${local?.nome || 'Local não especificado'}`}</h3>
                 <p className="text-xs text-muted-foreground">{local?.nome || "Local não encontrado"}</p>
                 <p className="text-xs text-muted-foreground">{dataFormatada}</p>
               </div>
@@ -105,11 +104,6 @@ export default function PlantaoCard({ plantao, onEdit, onDelete, onTogglePago, l
                     />
                   </div>
                 )}
-              </div>
-            </div>
-            <div className="text-xs mt-0.5 flex justify-start items-center">
-              <div className="text-muted-foreground">
-                {plantao.horaInicio} - {plantao.horaFim}
               </div>
             </div>
           </CardContent>

@@ -20,7 +20,7 @@ import { Plantao } from "@/types";
 interface PlantaoFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  plantaoParaEditar?: Plantao;
+  plantaoParaEditar?: Plantao | null;
 }
 
 export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: PlantaoFormDialogProps) {
@@ -105,7 +105,7 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     const novosErros: Record<string, string> = {};
 
     if (!localId) {
-      novosErros.localId = "Selecione um local";
+      novosErros.local = "Selecione um local";
     }
 
     if (!data) {
@@ -117,11 +117,11 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
     }
 
     if (!horaFim) {
-      novosErros.horaFim = "Informe a hora de término";
+      novosErros.horaFim = "Informe a hora de fim";
     }
 
     if (valor && (isNaN(Number(valor)) || Number(valor) < 0)) {
-      novosErros.valor = "Informe um valor válido";
+      novosErros.valor = "Valor inválido";
     }
 
     setErros(novosErros);
@@ -131,8 +131,6 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
   // Salvar plantão
   const handleSalvar = () => {
     if (!validarFormulario()) {
-      window?.toast?.error?.("Preencha todos os campos obrigatórios.");
-      console.error('[handleSalvar] Formulário inválido', { localId, data, horaInicio, horaFim, valor });
       return;
     }
 
@@ -330,11 +328,11 @@ export function PlantaoFormDialog({ isOpen, onClose, plantaoParaEditar }: Planta
         <div className="grid gap-4 py-4">
   {/* Local */}
   <div className="grid gap-2">
-    <Label htmlFor="local" className={erros.localId ? "text-destructive" : ""}>
+    <Label htmlFor="local" className={erros.local ? "text-destructive" : ""}>
       Local
     </Label>
-    <Select id="local" value={localId} onValueChange={setLocalId}>
-      <SelectTrigger className={erros.localId ? "border-destructive" : ""}>
+    <Select value={localId} onValueChange={setLocalId}>
+      <SelectTrigger className={erros.local ? "border-destructive" : ""}>
         <SelectValue placeholder="Selecione um local" />
       </SelectTrigger>
       <SelectContent>
