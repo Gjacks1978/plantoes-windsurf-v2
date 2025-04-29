@@ -24,12 +24,14 @@ export default function Home() {
     marcarComoPago
   } = usePlantoes();
   const { locais } = useLocais();
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date())); // Inicializa com o início do mês atual
-  const [date, setDate] = useState<Date | null>(new Date());  // Estado para controlar o modal de adicionar/editar plantão
+  // Inicializa com o início do mês atual, garantindo que seja o mês correto
+  const dataAtual = useMemo(() => new Date(), []);
+  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(dataAtual));
+  const [date, setDate] = useState<Date | null>(dataAtual);  // Estado para controlar o modal de adicionar/editar plantão
   const [isPlantaoFormOpen, setIsPlantaoFormOpen] = useState(false);
   const [plantaoParaEditar, setPlantaoParaEditar] = useState<Plantao | undefined>(undefined);
 
-  const hoje = useMemo(() => startOfDay(new Date()), []);
+  const hoje = useMemo(() => startOfDay(dataAtual), [dataAtual]);
 
   // --- Variáveis Booleanas Auxiliares ---
   const isPastMonthView = useMemo(() => {

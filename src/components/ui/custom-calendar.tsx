@@ -83,25 +83,21 @@ export function CustomCalendar({
         <div className="relative">
           <Swiper
             onSlideChange={(swiper) => {
-              const newMonth = swiper.activeIndex > swiper.previousIndex
-                ? addMonths(month, 1)
-                : subMonths(month, 1);
-              onMonthChange(newMonth);
+              // Se o índice ativo for 0, estamos no mês anterior
+              if (swiper.activeIndex === 0) {
+                onMonthChange(subMonths(month, 1));
+              }
+              // Se o índice ativo for 2, estamos no próximo mês
+              else if (swiper.activeIndex === 2) {
+                onMonthChange(addMonths(month, 1));
+              }
             }}
-            initialSlide={2}
-            slidesPerView={3.5}
+            initialSlide={1} // Slide inicial é o mês atual
+            slidesPerView={3}
             centeredSlides={true}
             spaceBetween={10}
             className="month-swiper"
           >
-            <SwiperSlide>
-              <button 
-                onClick={() => onMonthChange(subMonths(month, 2))}
-                className="text-white/70 text-center w-full py-2 font-light text-2xl"
-              >
-                {format(subMonths(month, 2), 'MMMM', { locale: ptBR })}
-              </button>
-            </SwiperSlide>
             <SwiperSlide>
               <button 
                 onClick={() => onMonthChange(subMonths(month, 1))}
@@ -121,14 +117,6 @@ export function CustomCalendar({
                 className="text-white/70 text-center w-full py-2 font-light text-2xl"
               >
                 {format(addMonths(month, 1), 'MMMM', { locale: ptBR })}
-              </button>
-            </SwiperSlide>
-            <SwiperSlide>
-              <button 
-                onClick={() => onMonthChange(addMonths(month, 2))}
-                className="text-white/70 text-center w-full py-2 font-light text-2xl"
-              >
-                {format(addMonths(month, 2), 'MMMM', { locale: ptBR })}
               </button>
             </SwiperSlide>
           </Swiper>
