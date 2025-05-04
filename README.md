@@ -89,4 +89,4 @@ npm run dev
 - Sincronização com a nuvem
 - Notificações de plantões
 - Exportação de relatórios
-- Versão mobile nativa
+- Versão mobile nativa v1
